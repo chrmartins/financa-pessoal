@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: financa-pessoal
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financeiro_db
+    username: financeiro_user
+    password: financeiro_pass
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+  security:
+    user:
+      name: admin
+      password: admin123
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    com.financeiro: DEBUG
