@@ -30,18 +30,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	
-	// Override Spring Framework version to fix CVEs
-	implementation 'org.springframework:spring-web:6.2.8'
-	implementation 'org.springframework:spring-webmvc:6.2.8'
-	implementation 'org.springframework:spring-core:6.2.8'
-	implementation 'org.springframework:spring-context:6.2.8'
-	implementation 'org.springframework:spring-beans:6.2.8'
-	implementation 'org.springframework:spring-aop:6.2.8'
-	implementation 'org.springframework:spring-jdbc:6.2.8'
-	implementation 'org.springframework:spring-orm:6.2.8'
-	implementation 'org.springframework:spring-tx:6.2.8'
-	implementation 'org.springframework:spring-expression:6.2.8'
-	
 	// Database
 	runtimeOnly 'org.postgresql:postgresql'
 	runtimeOnly 'com.h2database:h2'
