@@ -2,6 +2,8 @@
 /build/
 /out/
 *.class
+*.jar
+*.war
 
 # IDE files
 .vscode/
