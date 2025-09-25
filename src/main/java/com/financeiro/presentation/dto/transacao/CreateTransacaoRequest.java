@@ -45,4 +45,17 @@ public class CreateTransacaoRequest {
 
     @Size(max = 500, message = "Observações devem ter no máximo 500 caracteres")
     private String observacoes;
+
+    /**
+     * Indica se a transação é recorrente (parcelada)
+     */
+    @Builder.Default
+    private Boolean recorrente = false;
+
+    /**
+     * Quantidade de parcelas para transações recorrentes.
+     * Deve ser informado quando recorrente = true
+     */
+    @Positive(message = "Quantidade de parcelas deve ser positiva")
+    private Integer quantidadeParcelas;
 }

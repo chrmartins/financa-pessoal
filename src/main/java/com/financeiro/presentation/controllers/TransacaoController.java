@@ -27,6 +27,8 @@ import com.financeiro.presentation.dto.transacao.CreateTransacaoRequest;
 import com.financeiro.presentation.dto.transacao.TransacaoResponse;
 import com.financeiro.presentation.dto.transacao.UpdateTransacaoRequest;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -41,10 +43,31 @@ public class TransacaoController {
 
     private final TransacaoService transacaoService;
     private final UsuarioService usuarioService;
+        /**
+         * Resumo financeiro por período
+         */
+        @GetMapping("/resumo")
+        public ResponseEntity<?> resumoFinanceiro(
+            @RequestParam UUID usuarioId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
+        ) {
+            try {
+                Usuario usuario = usuarioService.buscarPorId(usuarioId)
+                    .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+
+                var resumo = transacaoService.resumoFinanceiro(usuario, dataInicio, dataFim);
+                return ResponseEntity.ok(resumo);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(e.getMessage());
+            }
+        }
 
     /**
-     * Criar nova transação
+     * Criar nova transação (com suporte a recorrência)
      */
+    @Operation(summary = "Criar nova transação", 
+               description = "Cria uma nova transação. Suporta transações recorrentes (parceladas) quando recorrente=true e quantidadeParcelas > 1")
     @PostMapping
     public ResponseEntity<TransacaoResponse> criarTransacao(
             @Valid @RequestBody CreateTransacaoRequest request,
@@ -54,14 +77,16 @@ public class TransacaoController {
             Usuario usuario = usuarioService.buscarPorId(usuarioId)
                     .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
 
-            Transacao transacao = transacaoService.criarTransacao(
+            Transacao transacao = transacaoService.criarTransacaoComRecorrencia(
                     request.getDescricao(),
                     request.getValor(),
                     request.getDataTransacao(),
                     request.getTipo(),
                     request.getCategoriaId(),
                     usuario,
-                    request.getObservacoes()
+                    request.getObservacoes(),
+                    request.getRecorrente(),
+                    request.getQuantidadeParcelas()
             );
             
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -82,15 +107,36 @@ public class TransacaoController {
     }
 
     /**
-     * Listar transações de um usuário
+     * Listar transações de um usuário com filtros opcionais de data
      */
+    @Operation(summary = "Listar transações do usuário", 
+               description = "Lista as transações de um usuário. Opcionalmente filtra por período usando dataInicio e dataFim.")
     @GetMapping("/usuario/{usuarioId}")
-    public ResponseEntity<List<TransacaoResponse>> listarTransacoesDoUsuario(@PathVariable UUID usuarioId) {
+    public ResponseEntity<List<TransacaoResponse>> listarTransacoesDoUsuario(
+            @PathVariable UUID usuarioId,
+            @Parameter(description = "Data de início do período (formato: YYYY-MM-DD)", example = "2025-01-01")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @Parameter(description = "Data de fim do período (formato: YYYY-MM-DD)", example = "2025-01-31")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim) {
         try {
             Usuario usuario = usuarioService.buscarPorId(usuarioId)
                     .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
 
-            List<Transacao> transacoes = transacaoService.listarTransacoesDoUsuario(usuario);
+            List<Transacao> transacoes;
+            
+            // Se ambas as datas foram fornecidas, usa filtro por período
+            if (dataInicio != null && dataFim != null) {
+                System.out.println("🔍 DEBUG: Filtrando transações por período - " + 
+                                 "Início: " + dataInicio + ", Fim: " + dataFim + 
+                                 ", Usuário: " + usuario.getNome());
+                transacoes = transacaoService.listarTransacoesPorPeriodo(usuario, dataInicio, dataFim);
+                System.out.println("📊 DEBUG: Encontradas " + transacoes.size() + " transações no período");
+            } else {
+                System.out.println("📋 DEBUG: Listando todas as transações do usuário: " + usuario.getNome());
+                transacoes = transacaoService.listarTransacoesDoUsuario(usuario);
+                System.out.println("📊 DEBUG: Total de transações do usuário: " + transacoes.size());
+            }
+            
             List<TransacaoResponse> response = transacoes.stream()
                     .map(TransacaoResponse::fromEntitySimple)
                     .collect(Collectors.toList());
