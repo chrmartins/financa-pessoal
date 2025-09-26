@@ -1,6 +1,46 @@
-# Sistema de Gestão Financeira Pessoal
+# 💰 Sistema de Gestão Financeira Pessoal
 
 Sistema desenvolvido com Spring Boot 3.3, Java 21 e Clean Architecture para gestão financeira pessoal.
+
+## 🚀 **Deploy e Ambientes**
+
+### 🌍 **Ambientes Disponíveis**
+
+#### **Development (Local)**
+
+- **Profile**: `dev`
+- **Database**: H2 em memória
+- **URL**: http://localhost:8080
+- **Swagger**: http://localhost:8080/swagger-ui.html
+
+#### **Production (Railway)**
+
+- **Profile**: `prod`
+- **Database**: PostgreSQL
+- **URL**: https://financa-pessoal-production.up.railway.app
+- **Health Check**: /actuator/health
+
+### 🔧 **Variáveis de Ambiente**
+
+#### **Development**
+
+```bash
+SPRING_PROFILES_ACTIVE=dev
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+SWAGGER_ENABLED=true
+```
+
+#### **Production**
+
+```bash
+SPRING_PROFILES_ACTIVE=prod
+DATABASE_URL=postgresql://user:pass@host:port/db
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=your_password
+CORS_ALLOWED_ORIGINS=https://your-frontend.com
+JWT_SECRET=your-super-secret-jwt-key
+SWAGGER_ENABLED=false
+```
 
 ## 🚀 Tecnologias
 

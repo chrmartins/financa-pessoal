@@ -1,0 +1,55 @@
+# Arquivo .dockerignore para otimizar builds
+# Diretórios de build
+build/
+target/
+.gradle/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Logs
+*.log
+logs/
+
+# Temporários
+tmp/
+temp/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Documentação
+README.md
+docs/
+
+# Testes
+src/test/
+**/test/
+
+# Configurações locais
+application-local.yml
+application-secret.yml
+
+# Node modules (se houver frontend)
+node_modules/
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production

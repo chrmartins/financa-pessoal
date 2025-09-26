@@ -2,9 +2,9 @@ spring:
   application:
     name: financa-pessoal
 
-  # Perfil padrão é development (agora com PostgreSQL)
+  # Perfil padrão baseado na variável de ambiente
   profiles:
-    active: development
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
 server:
   port: 8080
