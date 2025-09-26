@@ -1,8 +1,5 @@
 # Configurações para ambiente de desenvolvimento
 spring:
-  profiles:
-    active: dev
-
   # Banco H2 em memória para desenvolvimento
   datasource:
     url: jdbc:h2:mem:testdb
