@@ -34,13 +34,19 @@ SWAGGER_ENABLED=true
 
 ```bash
 SPRING_PROFILES_ACTIVE=prod
+# Railway/Heroku style URL (será convertido automaticamente para JDBC)
 DATABASE_URL=postgresql://user:pass@host:port/db
+# (Opcional) Defina explicitamente se preferir manter credenciais separadas
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=your_password
+# (Opcional) Use DATABASE_JDBC_URL se já possuir a URL no formato jdbc:postgresql://...
+# DATABASE_JDBC_URL=jdbc:postgresql://host:port/db
 CORS_ALLOWED_ORIGINS=https://your-frontend.com
 JWT_SECRET=your-super-secret-jwt-key
 SWAGGER_ENABLED=false
 ```
+
+> 💡 **Railway**: ao usar o plugin de PostgreSQL, a plataforma já fornece a variável `DATABASE_URL`. O aplicativo converte esse valor automaticamente para o formato aceito pelo driver JDBC e extrai usuário/senha, dispensando ajustes adicionais.
 
 ## 🚀 Tecnologias
 
