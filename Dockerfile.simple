@@ -1,0 +1,25 @@
+FROM eclipse-temurin:21-jdk-alpine
+
+WORKDIR /app
+
+# Copiar todos os arquivos do Gradle wrapper primeiro
+COPY gradle/wrapper/ gradle/wrapper/
+COPY gradlew .
+COPY gradle.properties .
+COPY build.gradle .
+COPY settings.gradle .
+
+# Garantir que o gradlew tenha permissão de execução
+RUN chmod +x gradlew
+
+# Copiar código fonte
+COPY src/ src/
+
+# Build da aplicação
+RUN ./gradlew clean build -x test --no-daemon
+
+# Expor porta
+EXPOSE 8080
+
+# Executar a aplicação
+CMD ["sh", "-c", "java -Dserver.port=${PORT:-8080} -Dspring.profiles.active=prod -jar build/libs/financa-pessoal.jar"]

@@ -1,8 +1,15 @@
 package com.financeiro.infrastructure.config;
 
+// import java.sql.Connection;
+// import javax.sql.DataSource;
+// import org.springframework.boot.actuator.health.Health;
+// import org.springframework.boot.actuator.health.HealthIndicator;
+// import org.springframework.stereotype.Component;
+// import lombok.RequiredArgsConstructor;
+
 /**
  * Health check customizado para verificar conectividade com banco de dados
- * Temporariamente desabilitado para resolver problemas de dependência
+ * Temporariamente desabilitado devido a problema com dependências do Spring Boot Actuator
  */
 // @Component("database")
 // @RequiredArgsConstructor
