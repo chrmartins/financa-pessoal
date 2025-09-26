@@ -4,6 +4,9 @@ build/
 target/
 .gradle/
 
+# IMPORTANTE: NÃO excluir gradle/ (contém gradle-wrapper.jar necessário)
+# gradle/
+
 # IDEs
 .idea/
 .vscode/
