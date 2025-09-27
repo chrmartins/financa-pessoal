@@ -55,12 +55,16 @@ public class RailwayDataSourceConfig {
         if (log.isInfoEnabled()) {
             log.info("Variáveis de ambiente detectadas: DATABASE_URL='{}', DATABASE_JDBC_URL='{}'", maskSensitive(databaseUrlEnv), maskSensitive(databaseJdbcUrlEnv));
         }
+
         String resolvedJdbcUrl = resolveJdbcUrl();
-        if (StringUtils.hasText(resolvedJdbcUrl)) {
-            properties.setUrl(resolvedJdbcUrl);
-            if (log.isInfoEnabled()) {
-                log.info("Datasource JDBC URL resolvido para deploy: {}", maskSensitive(resolvedJdbcUrl));
-            }
+        if (!StringUtils.hasText(resolvedJdbcUrl)) {
+            properties.setUrl(null);
+            throw new IllegalStateException("Não foi possível resolver a variável DATABASE_URL/DATABASE_JDBC_URL. Verifique as variáveis de ambiente configuradas no Railway.");
+        }
+
+        properties.setUrl(resolvedJdbcUrl);
+        if (log.isInfoEnabled()) {
+            log.info("Datasource JDBC URL resolvido para deploy: {}", maskSensitive(resolvedJdbcUrl));
         }
 
         UsernamePassword credentials = resolveCredentials();
@@ -82,7 +86,7 @@ public class RailwayDataSourceConfig {
     }
 
     private String resolveJdbcUrl() {
-        String jdbcEnv = normalize(databaseJdbcUrlEnv);
+        String jdbcEnv = findEnvironmentValue("DATABASE_JDBC_URL", databaseJdbcUrlEnv);
         if (StringUtils.hasText(jdbcEnv)) {
             return jdbcEnv;
         }
@@ -91,9 +95,9 @@ public class RailwayDataSourceConfig {
         if (!StringUtils.hasText(databaseUrl)) {
             String fallback = resolvePlaceholder(properties.getUrl());
             if (StringUtils.hasText(fallback)) {
+                log.info("Utilizando spring.datasource.url após resolver placeholder: {}", maskSensitive(fallback));
                 return fallback;
             }
-            log.warn("Nenhuma URL de banco encontrada nas variáveis de ambiente ou propriedades. Valor atual: {}", properties.getUrl());
             return null;
         }
 
@@ -117,8 +121,8 @@ public class RailwayDataSourceConfig {
     }
 
     private UsernamePassword resolveCredentials() {
-        String username = normalize(databaseUsernameEnv);
-        String password = normalize(databasePasswordEnv);
+        String username = findEnvironmentValue("DATABASE_USERNAME", databaseUsernameEnv);
+        String password = findEnvironmentValue("DATABASE_PASSWORD", databasePasswordEnv);
 
         if (StringUtils.hasText(username) && password != null) {
             return new UsernamePassword(username, password);
@@ -184,19 +188,15 @@ public class RailwayDataSourceConfig {
     }
 
     private String resolveDatabaseUrlCandidate() {
-        String fromEnv = normalize(databaseUrlEnv);
+        String fromEnv = findEnvironmentValue("DATABASE_URL", databaseUrlEnv);
         if (StringUtils.hasText(fromEnv)) {
-            if (log.isInfoEnabled()) {
-                log.info("Utilizando DATABASE_URL da origem ENV: {}", maskSensitive(fromEnv));
-            }
+            log.info("Utilizando DATABASE_URL do ambiente: {}", maskSensitive(fromEnv));
             return fromEnv;
         }
 
         String fromProperties = normalize(resolvePlaceholder(properties.getUrl()));
         if (StringUtils.hasText(fromProperties)) {
-            if (log.isInfoEnabled()) {
-                log.info("Utilizando URL das propriedades após placeholder: {}", maskSensitive(fromProperties));
-            }
+            log.info("Utilizando URL das propriedades após placeholder: {}", maskSensitive(fromProperties));
             return fromProperties;
         }
 
@@ -223,6 +223,26 @@ public class RailwayDataSourceConfig {
             return null;
         }
         return resolved;
+    }
+
+    private String findEnvironmentValue(String key, String injectedValue) {
+        return firstNonEmpty(
+            normalize(injectedValue),
+            normalize(environment.getProperty(key)),
+            normalize(System.getenv(key))
+        );
+    }
+
+    private String firstNonEmpty(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private String maskSensitive(String value) {
