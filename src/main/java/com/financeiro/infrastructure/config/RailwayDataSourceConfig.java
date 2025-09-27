@@ -61,17 +61,12 @@ public class RailwayDataSourceConfig {
     }
 
     private String resolveJdbcUrl() {
-        String jdbcEnv = environment.getProperty("DATABASE_JDBC_URL");
+        String jdbcEnv = getEnvProperty("DATABASE_JDBC_URL");
         if (StringUtils.hasText(jdbcEnv)) {
-            return jdbcEnv;
+            return jdbcEnv.trim();
         }
 
-        String databaseUrlRaw = environment.getProperty("DATABASE_URL");
-        if (databaseUrlRaw == null) {
-            return properties.getUrl();
-        }
-
-        String databaseUrl = databaseUrlRaw.trim();
+        String databaseUrl = resolveDatabaseUrlCandidate();
         if (!StringUtils.hasText(databaseUrl)) {
             return properties.getUrl();
         }
@@ -89,35 +84,32 @@ public class RailwayDataSourceConfig {
                 return toJdbcPostgresUrl(databaseUrl);
             } catch (URISyntaxException ex) {
                 log.warn("Não foi possível converter DATABASE_URL para JDBC. Usando valor original: {}", ex.getMessage());
-                return properties.getUrl();
             }
         }
 
-        return properties.getUrl();
+        return environment.resolvePlaceholders(databaseUrl);
     }
 
     private UsernamePassword resolveCredentials() {
-        String username = environment.getProperty("DATABASE_USERNAME");
-        String password = environment.getProperty("DATABASE_PASSWORD");
+        String username = getEnvProperty("DATABASE_USERNAME");
+        String password = getEnvProperty("DATABASE_PASSWORD");
 
         if (StringUtils.hasText(username) && password != null) {
             return new UsernamePassword(username, password);
         }
 
-        String databaseUrlRaw = environment.getProperty("DATABASE_URL");
-        if (databaseUrlRaw == null) {
-            return new UsernamePassword(properties.getUsername(), properties.getPassword());
-        }
-
         try {
-            String databaseUrl = databaseUrlRaw.trim();
+            String databaseUrl = resolveDatabaseUrlCandidate();
             if (!StringUtils.hasText(databaseUrl)) {
-                return new UsernamePassword(properties.getUsername(), properties.getPassword());
+                return new UsernamePassword(resolvePlaceholder(properties.getUsername()), resolvePlaceholder(properties.getPassword()));
+            }
+            if (databaseUrl.startsWith("postgres://")) {
+                databaseUrl = databaseUrl.replaceFirst("postgres://", "postgresql://");
             }
             URI uri = new URI(databaseUrl.replaceFirst("postgres://", "postgresql://"));
             String userInfo = uri.getUserInfo();
             if (!StringUtils.hasText(userInfo)) {
-                return new UsernamePassword(properties.getUsername(), properties.getPassword());
+                return new UsernamePassword(resolvePlaceholder(properties.getUsername()), resolvePlaceholder(properties.getPassword()));
             }
 
             String[] parts = userInfo.split(":", 2);
@@ -133,7 +125,7 @@ public class RailwayDataSourceConfig {
             return new UsernamePassword(finalUsername, finalPassword);
         } catch (URISyntaxException ex) {
             log.warn("Não foi possível extrair credenciais de DATABASE_URL: {}", ex.getMessage());
-            return new UsernamePassword(properties.getUsername(), properties.getPassword());
+            return new UsernamePassword(resolvePlaceholder(properties.getUsername()), resolvePlaceholder(properties.getPassword()));
         }
     }
 
@@ -155,6 +147,42 @@ public class RailwayDataSourceConfig {
         }
 
         return builder.toString();
+    }
+
+    private String resolveDatabaseUrlCandidate() {
+        String databaseUrl = getEnvProperty("DATABASE_URL");
+        if (StringUtils.hasText(databaseUrl)) {
+            return databaseUrl.trim();
+        }
+
+        String urlFromProperties = properties.getUrl();
+        if (StringUtils.hasText(urlFromProperties)) {
+            String resolved = environment.resolvePlaceholders(urlFromProperties).trim();
+            if (StringUtils.hasText(resolved) && !resolved.equals(urlFromProperties)) {
+                return resolved;
+            }
+        }
+
+        return null;
+    }
+
+    private String getEnvProperty(String key) {
+        String value = environment.getProperty(key);
+        if (!StringUtils.hasText(value)) {
+            value = System.getenv(key);
+        }
+        if (value != null && !value.isBlank()) {
+            return value.trim();
+        }
+        return null;
+    }
+
+    private String resolvePlaceholder(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        String resolved = environment.resolvePlaceholders(value);
+        return StringUtils.hasText(resolved) ? resolved : value;
     }
 
     private record UsernamePassword(String username, String password) {}
