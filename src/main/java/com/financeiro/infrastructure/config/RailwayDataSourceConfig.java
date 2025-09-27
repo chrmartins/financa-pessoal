@@ -52,6 +52,9 @@ public class RailwayDataSourceConfig {
 
     @PostConstruct
     void configureDataSourceProperties() {
+        if (log.isInfoEnabled()) {
+            log.info("Variáveis de ambiente detectadas: DATABASE_URL='{}', DATABASE_JDBC_URL='{}'", maskSensitive(databaseUrlEnv), maskSensitive(databaseJdbcUrlEnv));
+        }
         String resolvedJdbcUrl = resolveJdbcUrl();
         if (StringUtils.hasText(resolvedJdbcUrl)) {
             properties.setUrl(resolvedJdbcUrl);
@@ -87,7 +90,11 @@ public class RailwayDataSourceConfig {
         String databaseUrl = resolveDatabaseUrlCandidate();
         if (!StringUtils.hasText(databaseUrl)) {
             String fallback = resolvePlaceholder(properties.getUrl());
-            return StringUtils.hasText(fallback) ? fallback : properties.getUrl();
+            if (StringUtils.hasText(fallback)) {
+                return fallback;
+            }
+            log.warn("Nenhuma URL de banco encontrada nas variáveis de ambiente ou propriedades. Valor atual: {}", properties.getUrl());
+            return null;
         }
 
         if (databaseUrl.startsWith("jdbc:")) {
@@ -179,11 +186,17 @@ public class RailwayDataSourceConfig {
     private String resolveDatabaseUrlCandidate() {
         String fromEnv = normalize(databaseUrlEnv);
         if (StringUtils.hasText(fromEnv)) {
+            if (log.isInfoEnabled()) {
+                log.info("Utilizando DATABASE_URL da origem ENV: {}", maskSensitive(fromEnv));
+            }
             return fromEnv;
         }
 
         String fromProperties = normalize(resolvePlaceholder(properties.getUrl()));
         if (StringUtils.hasText(fromProperties)) {
+            if (log.isInfoEnabled()) {
+                log.info("Utilizando URL das propriedades após placeholder: {}", maskSensitive(fromProperties));
+            }
             return fromProperties;
         }
 
