@@ -16,9 +16,9 @@ app:
 
 logging:
   level:
-    org.springframework.security: INFO
-    org.hibernate.SQL: DEBUG
-    com.financeiro: DEBUG
+    "[org.springframework.security]": INFO
+    "[org.hibernate.SQL]": DEBUG
+    "[com.financeiro]": DEBUG
 
 ---
 # Perfil de desenvolvimento (PostgreSQL)
