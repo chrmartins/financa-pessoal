@@ -8,6 +8,7 @@ import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -29,10 +30,24 @@ public class RailwayDataSourceConfig {
 
     private final DataSourceProperties properties;
     private final Environment environment;
+    private final String databaseUrlEnv;
+    private final String databaseJdbcUrlEnv;
+    private final String databaseUsernameEnv;
+    private final String databasePasswordEnv;
 
-    public RailwayDataSourceConfig(DataSourceProperties properties, Environment environment) {
+    public RailwayDataSourceConfig(
+            DataSourceProperties properties,
+            Environment environment,
+            @Value("${DATABASE_URL:}") String databaseUrlEnv,
+            @Value("${DATABASE_JDBC_URL:}") String databaseJdbcUrlEnv,
+            @Value("${DATABASE_USERNAME:}") String databaseUsernameEnv,
+            @Value("${DATABASE_PASSWORD:}") String databasePasswordEnv) {
         this.properties = properties;
         this.environment = environment;
+        this.databaseUrlEnv = databaseUrlEnv;
+        this.databaseJdbcUrlEnv = databaseJdbcUrlEnv;
+        this.databaseUsernameEnv = databaseUsernameEnv;
+        this.databasePasswordEnv = databasePasswordEnv;
     }
 
     @PostConstruct
@@ -40,6 +55,9 @@ public class RailwayDataSourceConfig {
         String resolvedJdbcUrl = resolveJdbcUrl();
         if (StringUtils.hasText(resolvedJdbcUrl)) {
             properties.setUrl(resolvedJdbcUrl);
+            if (log.isInfoEnabled()) {
+                log.info("Datasource JDBC URL resolvido para deploy: {}", maskSensitive(resolvedJdbcUrl));
+            }
         }
 
         UsernamePassword credentials = resolveCredentials();
@@ -61,14 +79,15 @@ public class RailwayDataSourceConfig {
     }
 
     private String resolveJdbcUrl() {
-        String jdbcEnv = getEnvProperty("DATABASE_JDBC_URL");
+        String jdbcEnv = normalize(databaseJdbcUrlEnv);
         if (StringUtils.hasText(jdbcEnv)) {
-            return jdbcEnv.trim();
+            return jdbcEnv;
         }
 
         String databaseUrl = resolveDatabaseUrlCandidate();
         if (!StringUtils.hasText(databaseUrl)) {
-            return properties.getUrl();
+            String fallback = resolvePlaceholder(properties.getUrl());
+            return StringUtils.hasText(fallback) ? fallback : properties.getUrl();
         }
 
         if (databaseUrl.startsWith("jdbc:")) {
@@ -87,12 +106,12 @@ public class RailwayDataSourceConfig {
             }
         }
 
-        return environment.resolvePlaceholders(databaseUrl);
+        return databaseUrl;
     }
 
     private UsernamePassword resolveCredentials() {
-        String username = getEnvProperty("DATABASE_USERNAME");
-        String password = getEnvProperty("DATABASE_PASSWORD");
+        String username = normalize(databaseUsernameEnv);
+        String password = normalize(databasePasswordEnv);
 
         if (StringUtils.hasText(username) && password != null) {
             return new UsernamePassword(username, password);
@@ -103,10 +122,18 @@ public class RailwayDataSourceConfig {
             if (!StringUtils.hasText(databaseUrl)) {
                 return new UsernamePassword(resolvePlaceholder(properties.getUsername()), resolvePlaceholder(properties.getPassword()));
             }
-            if (databaseUrl.startsWith("postgres://")) {
-                databaseUrl = databaseUrl.replaceFirst("postgres://", "postgresql://");
+            String credentialUrl = databaseUrl;
+            if (credentialUrl.startsWith("jdbc:postgresql://")) {
+                credentialUrl = credentialUrl.replaceFirst("jdbc:postgresql://", "postgresql://");
             }
-            URI uri = new URI(databaseUrl.replaceFirst("postgres://", "postgresql://"));
+            if (credentialUrl.startsWith("postgres://")) {
+                credentialUrl = credentialUrl.replaceFirst("postgres://", "postgresql://");
+            }
+            if (!credentialUrl.startsWith("postgresql://")) {
+                return new UsernamePassword(resolvePlaceholder(properties.getUsername()), resolvePlaceholder(properties.getPassword()));
+            }
+
+            URI uri = new URI(credentialUrl);
             String userInfo = uri.getUserInfo();
             if (!StringUtils.hasText(userInfo)) {
                 return new UsernamePassword(resolvePlaceholder(properties.getUsername()), resolvePlaceholder(properties.getPassword()));
@@ -150,39 +177,46 @@ public class RailwayDataSourceConfig {
     }
 
     private String resolveDatabaseUrlCandidate() {
-        String databaseUrl = getEnvProperty("DATABASE_URL");
-        if (StringUtils.hasText(databaseUrl)) {
-            return databaseUrl.trim();
+        String fromEnv = normalize(databaseUrlEnv);
+        if (StringUtils.hasText(fromEnv)) {
+            return fromEnv;
         }
 
-        String urlFromProperties = properties.getUrl();
-        if (StringUtils.hasText(urlFromProperties)) {
-            String resolved = environment.resolvePlaceholders(urlFromProperties).trim();
-            if (StringUtils.hasText(resolved) && !resolved.equals(urlFromProperties)) {
-                return resolved;
-            }
+        String fromProperties = normalize(resolvePlaceholder(properties.getUrl()));
+        if (StringUtils.hasText(fromProperties)) {
+            return fromProperties;
         }
 
         return null;
     }
 
-    private String getEnvProperty(String key) {
-        String value = environment.getProperty(key);
-        if (!StringUtils.hasText(value)) {
-            value = System.getenv(key);
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
         }
-        if (value != null && !value.isBlank()) {
-            return value.trim();
+        String trimmed = value.trim();
+        if (trimmed.isEmpty() || trimmed.contains("${")) {
+            return null;
         }
-        return null;
+        return trimmed;
     }
 
     private String resolvePlaceholder(String value) {
         if (!StringUtils.hasText(value)) {
-            return value;
+            return null;
         }
         String resolved = environment.resolvePlaceholders(value);
-        return StringUtils.hasText(resolved) ? resolved : value;
+        if (!StringUtils.hasText(resolved) || resolved.contains("${")) {
+            return null;
+        }
+        return resolved;
+    }
+
+    private String maskSensitive(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        return value.replaceAll("://([^:@/]+):([^@/]+)@", "://****:****@");
     }
 
     private record UsernamePassword(String username, String password) {}
