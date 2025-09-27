@@ -34,6 +34,12 @@ public class RailwayDataSourceConfig {
     private final String databaseJdbcUrlEnv;
     private final String databaseUsernameEnv;
     private final String databasePasswordEnv;
+    private final String pgHostEnv;
+    private final String pgPortEnv;
+    private final String pgDatabaseEnv;
+    private final String pgUserEnv;
+    private final String pgPasswordEnv;
+    private final String pgSslModeEnv;
 
     public RailwayDataSourceConfig(
             DataSourceProperties properties,
@@ -41,13 +47,25 @@ public class RailwayDataSourceConfig {
             @Value("${DATABASE_URL:}") String databaseUrlEnv,
             @Value("${DATABASE_JDBC_URL:}") String databaseJdbcUrlEnv,
             @Value("${DATABASE_USERNAME:}") String databaseUsernameEnv,
-            @Value("${DATABASE_PASSWORD:}") String databasePasswordEnv) {
+            @Value("${DATABASE_PASSWORD:}") String databasePasswordEnv,
+            @Value("${PGHOST:}") String pgHostEnv,
+            @Value("${PGPORT:}") String pgPortEnv,
+            @Value("${PGDATABASE:}") String pgDatabaseEnv,
+            @Value("${PGUSER:}") String pgUserEnv,
+            @Value("${PGPASSWORD:}") String pgPasswordEnv,
+            @Value("${PGSSLMODE:}") String pgSslModeEnv) {
         this.properties = properties;
         this.environment = environment;
         this.databaseUrlEnv = databaseUrlEnv;
         this.databaseJdbcUrlEnv = databaseJdbcUrlEnv;
         this.databaseUsernameEnv = databaseUsernameEnv;
         this.databasePasswordEnv = databasePasswordEnv;
+        this.pgHostEnv = pgHostEnv;
+        this.pgPortEnv = pgPortEnv;
+        this.pgDatabaseEnv = pgDatabaseEnv;
+        this.pgUserEnv = pgUserEnv;
+        this.pgPasswordEnv = pgPasswordEnv;
+        this.pgSslModeEnv = pgSslModeEnv;
     }
 
     @PostConstruct
@@ -93,6 +111,11 @@ public class RailwayDataSourceConfig {
 
         String databaseUrl = resolveDatabaseUrlCandidate();
         if (!StringUtils.hasText(databaseUrl)) {
+            String pgFallback = resolveFromPgVariables();
+            if (StringUtils.hasText(pgFallback)) {
+                log.info("Construindo JDBC URL a partir das variáveis PG*: {}", maskSensitive(pgFallback));
+                return pgFallback;
+            }
             String fallback = resolvePlaceholder(properties.getUrl());
             if (StringUtils.hasText(fallback)) {
                 log.info("Utilizando spring.datasource.url após resolver placeholder: {}", maskSensitive(fallback));
@@ -121,17 +144,24 @@ public class RailwayDataSourceConfig {
     }
 
     private UsernamePassword resolveCredentials() {
-        String username = findEnvironmentValue("DATABASE_USERNAME", databaseUsernameEnv);
-        String password = findEnvironmentValue("DATABASE_PASSWORD", databasePasswordEnv);
+        String envUsername = findEnvironmentValue("DATABASE_USERNAME", databaseUsernameEnv);
+        String envPassword = findEnvironmentValue("DATABASE_PASSWORD", databasePasswordEnv);
+        String pgUsername = findEnvironmentValue("PGUSER", pgUserEnv);
+        String pgPassword = findEnvironmentValue("PGPASSWORD", pgPasswordEnv);
 
-        if (StringUtils.hasText(username) && password != null) {
-            return new UsernamePassword(username, password);
+        String primaryUsername = firstNonEmpty(envUsername, pgUsername);
+        String primaryPassword = firstNonEmpty(envPassword, pgPassword);
+
+        if (StringUtils.hasText(primaryUsername) && primaryPassword != null) {
+            return new UsernamePassword(primaryUsername, primaryPassword);
         }
 
         try {
             String databaseUrl = resolveDatabaseUrlCandidate();
             if (!StringUtils.hasText(databaseUrl)) {
-                return new UsernamePassword(resolvePlaceholder(properties.getUsername()), resolvePlaceholder(properties.getPassword()));
+                String fallbackUsername = firstNonEmpty(resolvePlaceholder(properties.getUsername()), primaryUsername);
+                String fallbackPassword = firstNonEmpty(resolvePlaceholder(properties.getPassword()), primaryPassword);
+                return new UsernamePassword(fallbackUsername, fallbackPassword);
             }
             String credentialUrl = databaseUrl;
             if (credentialUrl.startsWith("jdbc:postgresql://")) {
@@ -154,17 +184,42 @@ public class RailwayDataSourceConfig {
             String resolvedUser = parts.length > 0 ? parts[0] : null;
             String resolvedPassword = parts.length > 1 ? parts[1] : null;
 
-            String finalUsername = Optional.ofNullable(username)
+            String finalUsername = Optional.ofNullable(firstNonEmpty(envUsername, pgUsername, resolvedUser))
                 .filter(StringUtils::hasText)
-                .orElse(resolvedUser);
+                .orElse(null);
 
-            String finalPassword = password != null ? password : resolvedPassword;
+            String finalPassword = firstNonEmpty(envPassword, pgPassword, resolvedPassword);
 
             return new UsernamePassword(finalUsername, finalPassword);
         } catch (URISyntaxException ex) {
             log.warn("Não foi possível extrair credenciais de DATABASE_URL: {}", ex.getMessage());
-            return new UsernamePassword(resolvePlaceholder(properties.getUsername()), resolvePlaceholder(properties.getPassword()));
+            String fallbackUsername = firstNonEmpty(resolvePlaceholder(properties.getUsername()), primaryUsername);
+            String fallbackPassword = firstNonEmpty(resolvePlaceholder(properties.getPassword()), primaryPassword);
+            return new UsernamePassword(fallbackUsername, fallbackPassword);
         }
+    }
+
+    private String resolveFromPgVariables() {
+        String host = findEnvironmentValue("PGHOST", pgHostEnv);
+        String database = findEnvironmentValue("PGDATABASE", pgDatabaseEnv);
+        String port = firstNonEmpty(findEnvironmentValue("PGPORT", pgPortEnv), "5432");
+        if (!StringUtils.hasText(host) || !StringUtils.hasText(database)) {
+            return null;
+        }
+
+        StringBuilder builder = new StringBuilder("jdbc:postgresql://")
+            .append(host)
+            .append(":")
+            .append(port)
+            .append("/")
+            .append(database);
+
+        String sslMode = findEnvironmentValue("PGSSLMODE", pgSslModeEnv);
+        if (StringUtils.hasText(sslMode)) {
+            builder.append("?sslmode=").append(sslMode);
+        }
+
+        return builder.toString();
     }
 
     private String toJdbcPostgresUrl(String databaseUrl) throws URISyntaxException {
