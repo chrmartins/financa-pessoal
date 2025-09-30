@@ -2,33 +2,17 @@ package com.financeiro.infrastructure.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import lombok.Data;
+
+@Data
 @ConfigurationProperties(prefix = "security")
 public class SecurityProperties {
-
-    private final Jwt jwt = new Jwt();
-
-    public Jwt getJwt() {
-        return jwt;
-    }
-
+    
+    private Jwt jwt = new Jwt();
+    
+    @Data
     public static class Jwt {
-        private String secret;
-        private Long expiration;
-
-        public String getSecret() {
-            return secret;
-        }
-
-        public void setSecret(String secret) {
-            this.secret = secret;
-        }
-
-        public Long getExpiration() {
-            return expiration;
-        }
-
-        public void setExpiration(Long expiration) {
-            this.expiration = expiration;
-        }
+        private String secret = "default-secret-key-for-development-only";
+        private long expirationTime = 86400000; // 24 hours in milliseconds
     }
 }

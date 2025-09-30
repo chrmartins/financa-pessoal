@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.financeiro.application.services.CategoriaService;
@@ -65,7 +64,7 @@ public class CategoriaController {
      */
     @GetMapping
     public ResponseEntity<List<CategoriaResponse>> listarCategorias() {
-        List<Categoria> categorias = categoriaService.listarCategoriasAtivas();
+        List<Categoria> categorias = categoriaService.listarAtivas();
         List<CategoriaResponse> response = categorias.stream()
                 .map(CategoriaResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -85,16 +84,10 @@ public class CategoriaController {
     }
 
     /**
-     * Buscar categorias por nome
+     * Buscar categorias por nome (funcionalidade temporariamente removida)
      */
-    @GetMapping("/buscar")
-    public ResponseEntity<List<CategoriaResponse>> buscarPorNome(@RequestParam String nome) {
-        List<Categoria> categorias = categoriaService.buscarPorNome(nome);
-        List<CategoriaResponse> response = categorias.stream()
-                .map(CategoriaResponse::fromEntity)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
-    }
+    // @GetMapping("/buscar")
+    // Funcionalidade será implementada em versão futura
 
     /**
      * Atualizar categoria
