@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: financa-pessoal
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financeiro
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+server:
+  port: 8080

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.financeiro.application.TransacaoService;
+import com.financeiro.application.services.TransacaoService;
 import com.financeiro.presentation.dto.transacao.CreateTransacaoRequest;
 import com.financeiro.presentation.dto.transacao.ResumoFinanceiroResponse;
 import com.financeiro.presentation.dto.transacao.TransacaoResponse;
@@ -41,6 +41,19 @@ public class TransacaoController {
         return ResponseEntity.ok(transacoes);
     }
 
+    @GetMapping("/usuario/{usuarioId}")
+    public ResponseEntity<List<TransacaoResponse>> listarPorUsuario(
+            @PathVariable UUID usuarioId,
+            @RequestParam(required = false) LocalDate dataInicio,
+            @RequestParam(required = false) LocalDate dataFim) {
+        try {
+            List<TransacaoResponse> transacoes = transacaoService.listarTransacoesPorUsuario(usuarioId, dataInicio, dataFim);
+            return ResponseEntity.ok(transacoes);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<TransacaoResponse> buscarTransacao(@PathVariable UUID id) {
         try {
@@ -55,6 +68,18 @@ public class TransacaoController {
     public ResponseEntity<TransacaoResponse> criarTransacao(@Valid @RequestBody CreateTransacaoRequest request) {
         try {
             TransacaoResponse transacao = transacaoService.criarTransacao(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(transacao);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/usuario/{usuarioId}")
+    public ResponseEntity<TransacaoResponse> criarTransacaoPorUsuario(
+            @PathVariable UUID usuarioId,
+            @Valid @RequestBody CreateTransacaoRequest request) {
+        try {
+            TransacaoResponse transacao = transacaoService.criarTransacao(request, usuarioId);
             return ResponseEntity.status(HttpStatus.CREATED).body(transacao);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -97,12 +122,36 @@ public class TransacaoController {
         return ResponseEntity.ok(saldo);
     }
 
+    @GetMapping("/usuario/{usuarioId}/saldo")
+    public ResponseEntity<BigDecimal> calcularSaldoPorUsuario(@PathVariable UUID usuarioId) {
+        try {
+            BigDecimal saldo = transacaoService.calcularSaldoPorUsuario(usuarioId);
+            return ResponseEntity.ok(saldo);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @GetMapping("/resumo")
     public ResponseEntity<ResumoFinanceiroResponse> resumoFinanceiro(
             @RequestParam(required = false) LocalDate dataInicio,
             @RequestParam(required = false) LocalDate dataFim) {
         try {
             ResumoFinanceiroResponse resumo = transacaoService.obterResumoFinanceiro(dataInicio, dataFim);
+            return ResponseEntity.ok(resumo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/usuario/{usuarioId}/resumo")
+    public ResponseEntity<ResumoFinanceiroResponse> resumoFinanceiroPorUsuario(
+            @PathVariable UUID usuarioId,
+            @RequestParam(required = false) LocalDate dataInicio,
+            @RequestParam(required = false) LocalDate dataFim) {
+        try {
+            ResumoFinanceiroResponse resumo = transacaoService.obterResumoFinanceiroPorUsuario(usuarioId, dataInicio, dataFim);
             return ResponseEntity.ok(resumo);
         } catch (Exception e) {
             e.printStackTrace();

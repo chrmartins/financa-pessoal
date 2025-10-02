@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: financa-pessoal
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financeiro
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        "[format_sql]": true
+    open-in-view: false
+
+  security:
+    user:
+      name: admin
+      password: admin123
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    try-it-out-enabled: true
+
+app:
+  cors:
+    allowed-origins: "http://localhost:3000,http://localhost:5173,http://localhost:4200"
+  swagger:
+    enabled: true
+
+security:
+  jwt:
+    secret: "dev-secret-key-for-local-development-only"
+    expiration-time: 86400000
+
+logging:
+  level:
+    "[com.financeiro]": DEBUG
+    "[org.springframework.security]": DEBUG
+    "[org.hibernate.SQL]": DEBUG
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE

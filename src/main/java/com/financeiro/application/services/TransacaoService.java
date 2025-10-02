@@ -1,4 +1,4 @@
-package com.financeiro.application;
+package com.financeiro.application.services;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -57,6 +57,26 @@ public class TransacaoService {
         return TransacaoResponse.fromEntity(salva);
     }
 
+    public TransacaoResponse criarTransacao(CreateTransacaoRequest request, UUID usuarioId) {
+        Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
+                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+        
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        Transacao transacao = new Transacao();
+        transacao.setDescricao(request.getDescricao());
+        transacao.setValor(request.getValor());
+        transacao.setDataTransacao(request.getDataTransacao());
+        transacao.setTipo(request.getTipo());
+        transacao.setObservacoes(request.getObservacoes());
+        transacao.setCategoria(categoria);
+        transacao.setUsuario(usuario);
+
+        Transacao salva = transacaoRepository.save(transacao);
+        return TransacaoResponse.fromEntity(salva);
+    }
+
     @Transactional(readOnly = true)
     public List<TransacaoResponse> listarTransacoes(LocalDate dataInicio, LocalDate dataFim) {
         List<Transacao> transacoes;
@@ -65,6 +85,21 @@ public class TransacaoService {
             transacoes = transacaoRepository.findByDataTransacaoBetween(dataInicio, dataFim);
         } else {
             transacoes = transacaoRepository.findAll();
+        }
+        
+        return transacoes.stream()
+                .map(TransacaoResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransacaoResponse> listarTransacoesPorUsuario(UUID usuarioId, LocalDate dataInicio, LocalDate dataFim) {
+        List<Transacao> transacoes;
+        
+        if (dataInicio != null && dataFim != null) {
+            transacoes = transacaoRepository.findByUsuarioIdAndDataTransacaoBetween(usuarioId, dataInicio, dataFim);
+        } else {
+            transacoes = transacaoRepository.findByUsuarioId(usuarioId);
         }
         
         return transacoes.stream()
@@ -122,6 +157,12 @@ public class TransacaoService {
     }
 
     @Transactional(readOnly = true)
+    public BigDecimal calcularSaldoPorUsuario(UUID usuarioId) {
+        BigDecimal saldo = transacaoRepository.calcularSaldoPorUsuario(usuarioId);
+        return saldo != null ? saldo : BigDecimal.ZERO;
+    }
+
+    @Transactional(readOnly = true)
     public ResumoFinanceiroResponse obterResumoFinanceiro(LocalDate dataInicio, LocalDate dataFim) {
         List<Transacao> transacoes;
         
@@ -129,6 +170,31 @@ public class TransacaoService {
             transacoes = transacaoRepository.findByDataTransacaoBetween(dataInicio, dataFim);
         } else {
             transacoes = transacaoRepository.findAll();
+        }
+
+        BigDecimal totalReceitas = transacoes.stream()
+                .filter(t -> t.getValor().compareTo(BigDecimal.ZERO) > 0)
+                .map(Transacao::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalDespesas = transacoes.stream()
+                .filter(t -> t.getValor().compareTo(BigDecimal.ZERO) < 0)
+                .map(Transacao::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal saldo = totalReceitas.add(totalDespesas);
+
+        return new ResumoFinanceiroResponse(totalReceitas, totalDespesas.abs(), saldo);
+    }
+
+    @Transactional(readOnly = true)
+    public ResumoFinanceiroResponse obterResumoFinanceiroPorUsuario(UUID usuarioId, LocalDate dataInicio, LocalDate dataFim) {
+        List<Transacao> transacoes;
+        
+        if (dataInicio != null && dataFim != null) {
+            transacoes = transacaoRepository.findByUsuarioIdAndDataTransacaoBetween(usuarioId, dataInicio, dataFim);
+        } else {
+            transacoes = transacaoRepository.findByUsuarioId(usuarioId);
         }
 
         BigDecimal totalReceitas = transacoes.stream()

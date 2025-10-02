@@ -1,19 +1,25 @@
 package com.financeiro.repository;
 
-import com.financeiro.domain.entities.Transacao;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import com.financeiro.domain.entities.Transacao;
+
 @Repository
 public interface TransacaoRepository extends JpaRepository<Transacao, UUID> {
 
     List<Transacao> findByDataTransacaoBetween(LocalDate inicio, LocalDate fim);
+    
+    // Métodos para filtrar por usuário
+    List<Transacao> findByUsuarioId(UUID usuarioId);
+    
+    List<Transacao> findByUsuarioIdAndDataTransacaoBetween(UUID usuarioId, LocalDate inicio, LocalDate fim);
 
     @Query("SELECT SUM(t.valor) FROM Transacao t WHERE t.tipo = 'RECEITA'")
     BigDecimal calcularTotalReceitas();
@@ -23,4 +29,14 @@ public interface TransacaoRepository extends JpaRepository<Transacao, UUID> {
 
     @Query("SELECT (COALESCE(SUM(CASE WHEN t.tipo = 'RECEITA' THEN t.valor ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN t.tipo = 'DESPESA' THEN t.valor ELSE 0 END), 0)) FROM Transacao t")
     BigDecimal calcularSaldo();
+    
+    // Métodos para cálculos por usuário
+    @Query("SELECT SUM(t.valor) FROM Transacao t WHERE t.usuario.id = :usuarioId AND t.tipo = 'RECEITA'")
+    BigDecimal calcularTotalReceitasPorUsuario(UUID usuarioId);
+
+    @Query("SELECT SUM(t.valor) FROM Transacao t WHERE t.usuario.id = :usuarioId AND t.tipo = 'DESPESA'")
+    BigDecimal calcularTotalDespesasPorUsuario(UUID usuarioId);
+
+    @Query("SELECT (COALESCE(SUM(CASE WHEN t.tipo = 'RECEITA' THEN t.valor ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN t.tipo = 'DESPESA' THEN t.valor ELSE 0 END), 0)) FROM Transacao t WHERE t.usuario.id = :usuarioId")
+    BigDecimal calcularSaldoPorUsuario(UUID usuarioId);
 }
