@@ -179,6 +179,10 @@ docker compose up -d
 
 ## 📡 API Endpoints
 
+### Autenticação
+
+- `POST /api/auth` - Autentica com `email` e `senha`, retornando os dados do usuário e espaço reservado para token JWT
+
 ### Categorias
 
 - `GET /api/categorias` - Listar categorias ativas
