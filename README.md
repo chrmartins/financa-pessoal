@@ -20,6 +20,19 @@ Sistema desenvolvido com Spring Boot 3.3, Java 21 e Clean Architecture para gest
 - **URL**: https://financa-pessoal-production.up.railway.app
 - **Health Check**: /actuator/health
 
+##### Checklist rápido de deploy
+
+1. Provisionar o serviço PostgreSQL no projeto (template oficial) e garantir a variável `DATABASE_URL`.
+2. No serviço backend, definir as variáveis:
+
+- `SPRING_PROFILES_ACTIVE=prod`
+- `JWT_SECRET=<mínimo 32 caracteres>`
+- `CORS_ALLOWED_ORIGINS`, `SWAGGER_ENABLED`, `JWT_EXPIRATION` conforme necessidade.
+
+3. Confirmar que o deploy utiliza o `Dockerfile` da raiz (multi-stage com Temurin 21).
+4. Realizar o deploy via GitHub ou CLI `railway up`. Healthcheck configurado em `/actuator/health`.
+5. Monitorar os logs: a mensagem `DATABASE_URL detectado` indica conexão ao Postgres fornecido.
+
 ### 🔧 **Variáveis de Ambiente**
 
 #### **Development**

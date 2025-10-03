@@ -8,6 +8,7 @@
 2. **Variáveis obrigatórias não configuradas no Railway** ⚠️ AÇÃO NECESSÁRIA
 3. **Healthcheck timeout muito alto** ✅ CORRIGIDO
 4. **Possível conflito nixpacks.toml vs Dockerfile** ✅ ESCLARECIDO
+5. **Conversão automática do `DATABASE_URL`** ✅ Implementada via `RailwayDataSourceConfig`
 
 ## 🚀 PASSO A PASSO PARA DEPLOY
 
@@ -78,9 +79,15 @@ git push origin main
 
 ### Dockerfile
 
-- ✅ Ordem correta das variáveis ENV
-- ✅ Java 21 + Spring Boot
-- ✅ Gradle build otimizado
+- ✅ Multi-stage com Temurin 21 (build + runtime enxuto)
+- ✅ Usa `bootJar` e remove JAR plano
+- ✅ EntryPoint já aplica `SPRING_PROFILES_ACTIVE=prod`
+
+### RailwayDataSourceConfig
+
+- ✅ Converte `DATABASE_URL` para `spring.datasource.*`
+- ✅ Loga host/porta detectados
+- ✅ Mantém credenciais decodificadas e evita sobrescrever configurações locais
 
 ## 🔧 Debugging
 
@@ -92,7 +99,7 @@ git push origin main
 
 ### Logs importantes para procurar:
 
-- "Variáveis de ambiente detectadas..." (do RailwayDataSourceConfig)
+- "DATABASE_URL detectado. Utilizando host ..." (do `RailwayDataSourceConfig`)
 - "Started FinancasPessoalApplication"
 - Erros de conexão com PostgreSQL
 
