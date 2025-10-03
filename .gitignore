@@ -14,7 +14,6 @@
 
 # Gradle files
 .gradle/
-/gradle/wrapper/gradle-wrapper.jar
 
 # Maven (not used but just in case)
 target/
@@ -36,6 +35,7 @@ buildNumber.properties
 *.zip
 *.tar.gz
 *.rar
+!gradle/wrapper/gradle-wrapper.jar
 
 # Logs
 logs/
