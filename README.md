@@ -1,24 +1,63 @@
-# 💰 Sistema de Gestão Financeira Pessoal
+# 💰## 📚 Documentação
+
+### 🎯 Início Rápido
+
+**📑 COMECE AQUI:** [DOCS_MASTER_INDEX.md](./DOCS_MASTER_INDEX.md) - Índice completo de TODA documentação
+
+**Para Time de Frontend:**
+
+- **[FRONTEND_README.md](./FRONTEND_README.md)** - 🎨 README específico do frontend (TL;DR)
+- **[EXECUTIVE_SUMMARY.md](./EXECUTIVE_SUMMARY.md)** - 📊 Visão executiva do projeto
+- **[FRONTEND_QUICKSTART.md](./FRONTEND_QUICKSTART.md)** - ⚡ Setup em 5 minutos
+- **[REACT_EXAMPLE.md](./REACT_EXAMPLE.md)** - 💻 Código completo React
+
+**Guias Detalhados:**
+
+- **[FRONTEND_DOCS_INDEX.md](./FRONTEND_DOCS_INDEX.md)** - 📑 Índice dos guias frontend
+- **[FRONTEND_ENVIRONMENT_SETUP.md](./FRONTEND_ENVIRONMENT_SETUP.md)** - 🔧 Configuração completa DEV/PROD
+- **[FRONTEND_INTEGRATION_GUIDE.md](./FRONTEND_INTEGRATION_GUIDE.md)** - 📖 Referência completa da API
+- **[FRONTEND_CHECKLIST.md](./FRONTEND_CHECKLIST.md)** - ✅ Checklist de integração
+
+**Arquitetura:**
+
+- **[ENVIRONMENTS.md](./ENVIRONMENTS.md)** - 🌍 Visão geral dos ambientes DEV e PROD
+- **[ARCHITECTURE_DIAGRAM.md](./ARCHITECTURE_DIAGRAM.md)** - 📊 Diagramas e fluxos do sistema
+
+**Backend/Deploy:**
+
+- **[RAILWAY_DEPLOY_GUIDE.md](./RAILWAY_DEPLOY_GUIDE.md)** - 🚀 Como fazer deploy no Railwayma de Gestão Financeira Pessoal
 
 Sistema desenvolvido com Spring Boot 3.3, Java 21 e Clean Architecture para gestão financeira pessoal.
 
-## 🚀 **Deploy e Ambientes**
+## � Documentação
+
+- **[ENVIRONMENTS.md](./ENVIRONMENTS.md)** - Visão geral completa dos ambientes DEV e PROD
+- **[FRONTEND_ENVIRONMENT_SETUP.md](./FRONTEND_ENVIRONMENT_SETUP.md)** - Guia de configuração do frontend para ambos ambientes
+- **[FRONTEND_INTEGRATION_GUIDE.md](./FRONTEND_INTEGRATION_GUIDE.md)** - Documentação detalhada da API (endpoints, exemplos, autenticação)
+- **[RAILWAY_DEPLOY_GUIDE.md](./RAILWAY_DEPLOY_GUIDE.md)** - Como fazer deploy no Railway
+
+## �🚀 **Deploy e Ambientes**
 
 ### 🌍 **Ambientes Disponíveis**
 
 #### **Development (Local)**
 
 - **Profile**: `dev`
-- **Database**: H2 em memória
-- **URL**: http://localhost:8080
+- **Database**: PostgreSQL (Docker) + H2 (opcional)
+- **URL Backend**: http://localhost:8080
+- **URL Frontend**: http://localhost:3000 (configurar)
 - **Swagger**: http://localhost:8080/swagger-ui.html
+- **Credenciais**: admin@financeiro.com / password
 
 #### **Production (Railway)**
 
 - **Profile**: `prod`
-- **Database**: PostgreSQL
-- **URL**: https://financa-pessoal-production.up.railway.app
+- **Database**: PostgreSQL Railway
+- **URL Backend**: https://financa-pessoal-production.up.railway.app
+- **URL Frontend**: 🔧 A configurar (Vercel/Netlify)
+- **Swagger**: https://financa-pessoal-production.up.railway.app/swagger-ui.html
 - **Health Check**: /actuator/health
+- **Credenciais**: admin@financeiro.com / password
 
 ##### Checklist rápido de deploy
 
@@ -131,14 +170,18 @@ docker-compose down -v
 
 ## 📊 Dados de Exemplo
 
-O sistema inclui dados de exemplo pré-configurados:
+Quando a aplicação inicia com um banco vazio, uma rotina de bootstrap garante um mínimo de dados para navegação:
 
-- **3 usuários** (João, Maria, Admin)
-- **19 categorias** (7 receitas + 12 despesas)
-- **40+ transações** dos últimos 3 meses
-- **Cenários realistas** para testes
+- **Usuário administrador padrão**
+  - Email: `admin@financeiro.com`
+  - Senha: `admin123`
+  - Papel: `ADMIN`
+- **Categorias iniciais**: 12 itens (5 receitas + 7 despesas) cobrindo os principais grupos financeiros
+- **Transações de exemplo**: 1 receita e 1 despesa associadas ao usuário administrador
 
-Para usar os dados de exemplo:
+> 🔐 As senhas são armazenadas com BCrypt. Ao alterar a senha padrão, a aplicação persistirá o novo hash automaticamente.
+
+Para utilizar os dados de exemplo em ambiente local:
 
 ```bash
 # 1. Subir PostgreSQL (script auxiliar)
@@ -147,11 +190,6 @@ Para usar os dados de exemplo:
 # 2. Executar aplicação (PostgreSQL é padrão)
 ./gradlew bootRun
 ```
-
-**Usuários de teste**:
-
-- João Silva: `joao.silva@email.com` (saldo: ~R$ 8.665)
-- Maria Santos: `maria.santos@email.com` (saldo: ~R$ 3.104)
 
 ## 🏃‍♂️ Executando a Aplicação
 
@@ -285,9 +323,64 @@ Durante o desenvolvimento, todas as rotas estão liberadas. Para produção, con
 
 ## 🎯 Próximos Passos
 
-- [ ] Implementar JWT Authentication
-- [ ] Adicionar testes unitários e integração
-- [ ] Criar dashboards/relatórios
+### ✅ Concluído
+
+- [x] Implementar JWT Authentication
+- [x] API REST completa com validações
+- [x] Clean Architecture
+- [x] Deploy automático no Railway
+- [x] Configuração de ambientes DEV/PROD
+- [x] Documentação completa para frontend
+
+### 🔧 Configurar Agora
+
+- [ ] **Configure o frontend seguindo [FRONTEND_ENVIRONMENT_SETUP.md](./FRONTEND_ENVIRONMENT_SETUP.md)**
+- [ ] Teste o ambiente DEV completo (Backend local + Frontend local)
+- [ ] Teste o ambiente PROD (Backend Railway + Frontend local/hospedado)
+
+### 📋 Roadmap Futuro
+
+- [ ] Hospedar frontend (Vercel/Netlify)
+- [ ] Adicionar testes E2E
 - [ ] Implementar cache com Redis
-- [ ] Adicionar métricas (Actuator)
-- [ ] Frontend (React/Angular)
+- [ ] Criar dashboards/relatórios avançados
+- [ ] Adicionar métricas e monitoramento
+- [ ] CI/CD para frontend
+
+---
+
+## 🆘 Suporte e Troubleshooting
+
+### Backend
+
+- **Logs DEV**: Terminal local onde rodou `./gradlew bootRun`
+- **Logs PROD**: Railway Dashboard → Service → Deployments → View Logs
+- **Health**: `/actuator/health` (DEV e PROD)
+
+### Frontend
+
+- Veja guias em [FRONTEND_ENVIRONMENT_SETUP.md](./FRONTEND_ENVIRONMENT_SETUP.md)
+- Troubleshooting CORS, autenticação e variáveis de ambiente
+
+### Comandos Úteis
+
+```bash
+# Backend local
+./gradlew bootRun --args='--spring.profiles.active=dev'
+
+# Railway CLI
+railway logs
+railway status
+
+# Database local
+docker exec -it financa-postgres psql -U postgres -d financeiro
+
+# Exportar dados
+docker exec financa-postgres pg_dump -U postgres -d financeiro > backup.sql
+```
+
+---
+
+**Última Atualização:** 04 de Outubro de 2025  
+**Versão:** 1.0.0  
+**Ambiente PROD:** https://financa-pessoal-production.up.railway.app
