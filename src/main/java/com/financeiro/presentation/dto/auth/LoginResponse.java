@@ -8,9 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Resposta para autenticação de usuários.
- *
- * No futuro poderá transportar o token JWT e metadados de expiração.
+ * Resposta para autenticação de usuários com JWT.
  */
 @Data
 @Builder
@@ -20,5 +18,6 @@ public class LoginResponse {
 
     private UsuarioResponse usuario;
     private String token;
+    private String refreshToken;
     private Long expiresIn;
 }
