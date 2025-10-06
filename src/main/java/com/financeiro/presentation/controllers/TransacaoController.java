@@ -135,9 +135,19 @@ public class TransacaoController {
     @GetMapping("/resumo")
     public ResponseEntity<ResumoFinanceiroResponse> resumoFinanceiro(
             @RequestParam(required = false) LocalDate dataInicio,
-            @RequestParam(required = false) LocalDate dataFim) {
+            @RequestParam(required = false) LocalDate dataFim,
+            @RequestParam(required = false) UUID usuarioId) {
         try {
-            ResumoFinanceiroResponse resumo = transacaoService.obterResumoFinanceiro(dataInicio, dataFim);
+            ResumoFinanceiroResponse resumo;
+            
+            // Se usuarioId foi fornecido, filtrar por usuário específico
+            if (usuarioId != null) {
+                resumo = transacaoService.obterResumoFinanceiroPorUsuario(usuarioId, dataInicio, dataFim);
+            } else {
+                // Caso contrário, retornar resumo geral
+                resumo = transacaoService.obterResumoFinanceiro(dataInicio, dataFim);
+            }
+            
             return ResponseEntity.ok(resumo);
         } catch (Exception e) {
             e.printStackTrace();
