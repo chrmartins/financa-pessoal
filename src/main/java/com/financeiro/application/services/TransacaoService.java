@@ -84,7 +84,7 @@ public class TransacaoService {
         if (dataInicio != null && dataFim != null) {
             transacoes = transacaoRepository.findByDataTransacaoBetween(dataInicio, dataFim);
         } else {
-            transacoes = transacaoRepository.findAll();
+            transacoes = transacaoRepository.findAllWithRelations();
         }
         
         return transacoes.stream()
@@ -109,7 +109,7 @@ public class TransacaoService {
 
     @Transactional(readOnly = true)
     public TransacaoResponse buscarPorId(UUID id) {
-        Transacao transacao = transacaoRepository.findById(id)
+        Transacao transacao = transacaoRepository.findByIdWithRelations(id)
                 .orElseThrow(() -> new RuntimeException("Transação não encontrada"));
         return TransacaoResponse.fromEntity(transacao);
     }
