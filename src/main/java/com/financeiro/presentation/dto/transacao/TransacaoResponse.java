@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.financeiro.domain.entities.Transacao;
 import com.financeiro.presentation.dto.categoria.CategoriaResponse;
+import com.financeiro.presentation.dto.usuario.UsuarioResponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,6 +32,7 @@ public class TransacaoResponse {
     private LocalDateTime dataCriacao;
     private LocalDateTime dataAtualizacao;
     private CategoriaResponse categoria;
+    private UsuarioResponse usuario;  // ✅ ADICIONADO
 
     /**
      * Converte entidade para DTO de resposta
@@ -46,6 +48,7 @@ public class TransacaoResponse {
                 .dataCriacao(transacao.getDataCriacao())
                 .dataAtualizacao(transacao.getDataAtualizacao())
                 .categoria(CategoriaResponse.fromEntity(transacao.getCategoria()))
+                .usuario(UsuarioResponse.fromEntity(transacao.getUsuario()))  // ✅ ADICIONADO
                 .build();
     }
 
@@ -66,6 +69,11 @@ public class TransacaoResponse {
                         .id(transacao.getCategoria().getId())
                         .nome(transacao.getCategoria().getNome())
                         .tipo(transacao.getCategoria().getTipo())
+                        .build())
+                .usuario(UsuarioResponse.builder()  // ✅ ADICIONADO
+                        .id(transacao.getUsuario().getId())
+                        .nome(transacao.getUsuario().getNome())
+                        .email(transacao.getUsuario().getEmail())
                         .build())
                 .build();
     }
