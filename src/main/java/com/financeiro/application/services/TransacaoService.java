@@ -40,9 +40,31 @@ public class TransacaoService {
         Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
                 .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
         
+        // DEPRECATED: Este método não deve ser usado, pois pega sempre o primeiro usuário
+        // Use criarTransacaoParaUsuarioAutenticado() ou criarTransacao(request, usuarioId)
         Usuario usuario = usuarioRepository.findAll().stream()
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        Transacao transacao = new Transacao();
+        transacao.setDescricao(request.getDescricao());
+        transacao.setValor(request.getValor());
+        transacao.setDataTransacao(request.getDataTransacao());
+        transacao.setTipo(request.getTipo());
+        transacao.setObservacoes(request.getObservacoes());
+        transacao.setCategoria(categoria);
+        transacao.setUsuario(usuario);
+
+        Transacao salva = transacaoRepository.save(transacao);
+        return TransacaoResponse.fromEntity(salva);
+    }
+
+    public TransacaoResponse criarTransacaoParaUsuarioAutenticado(CreateTransacaoRequest request, String emailUsuario) {
+        Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
+                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+        
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
 
         Transacao transacao = new Transacao();
         transacao.setDescricao(request.getDescricao());
@@ -169,22 +191,22 @@ public class TransacaoService {
         if (dataInicio != null && dataFim != null) {
             transacoes = transacaoRepository.findByDataTransacaoBetween(dataInicio, dataFim);
         } else {
-            transacoes = transacaoRepository.findAll();
+            transacoes = transacaoRepository.findAllWithRelations();
         }
 
         BigDecimal totalReceitas = transacoes.stream()
-                .filter(t -> t.getValor().compareTo(BigDecimal.ZERO) > 0)
+                .filter(t -> t.getTipo() == Transacao.TipoTransacao.RECEITA)
                 .map(Transacao::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalDespesas = transacoes.stream()
-                .filter(t -> t.getValor().compareTo(BigDecimal.ZERO) < 0)
+                .filter(t -> t.getTipo() == Transacao.TipoTransacao.DESPESA)
                 .map(Transacao::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal saldo = totalReceitas.add(totalDespesas);
+        BigDecimal saldo = totalReceitas.subtract(totalDespesas);
 
-        return new ResumoFinanceiroResponse(totalReceitas, totalDespesas.abs(), saldo);
+        return new ResumoFinanceiroResponse(totalReceitas, totalDespesas, saldo);
     }
 
     @Transactional(readOnly = true)
@@ -198,17 +220,17 @@ public class TransacaoService {
         }
 
         BigDecimal totalReceitas = transacoes.stream()
-                .filter(t -> t.getValor().compareTo(BigDecimal.ZERO) > 0)
+                .filter(t -> t.getTipo() == Transacao.TipoTransacao.RECEITA)
                 .map(Transacao::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalDespesas = transacoes.stream()
-                .filter(t -> t.getValor().compareTo(BigDecimal.ZERO) < 0)
+                .filter(t -> t.getTipo() == Transacao.TipoTransacao.DESPESA)
                 .map(Transacao::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal saldo = totalReceitas.add(totalDespesas);
+        BigDecimal saldo = totalReceitas.subtract(totalDespesas);
 
-        return new ResumoFinanceiroResponse(totalReceitas, totalDespesas.abs(), saldo);
+        return new ResumoFinanceiroResponse(totalReceitas, totalDespesas, saldo);
     }
 }

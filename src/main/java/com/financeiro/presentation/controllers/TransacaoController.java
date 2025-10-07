@@ -7,6 +7,8 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -67,7 +69,11 @@ public class TransacaoController {
     @PostMapping
     public ResponseEntity<TransacaoResponse> criarTransacao(@Valid @RequestBody CreateTransacaoRequest request) {
         try {
-            TransacaoResponse transacao = transacaoService.criarTransacao(request);
+            // Obter o email do usuário autenticado
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String emailUsuarioAutenticado = authentication.getName();
+            
+            TransacaoResponse transacao = transacaoService.criarTransacaoParaUsuarioAutenticado(request, emailUsuarioAutenticado);
             return ResponseEntity.status(HttpStatus.CREATED).body(transacao);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
