@@ -36,9 +36,14 @@ public class BootstrapData implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        Usuario admin = ensureDefaultAdminUser();
-        List<Categoria> categorias = ensureDefaultCategorias();
-        ensureDefaultTransacoes(admin, categorias);
+        try {
+            Usuario admin = ensureDefaultAdminUser();
+            List<Categoria> categorias = ensureDefaultCategorias(admin);
+            ensureDefaultTransacoes(admin, categorias);
+            LOGGER.info("✅ BootstrapData executado com sucesso!");
+        } catch (Exception e) {
+            LOGGER.error("❌ Erro ao executar BootstrapData: {}", e.getMessage(), e);
+        }
     }
 
     private Usuario ensureDefaultAdminUser() {
@@ -58,27 +63,31 @@ public class BootstrapData implements ApplicationRunner {
                 });
     }
 
-    private List<Categoria> ensureDefaultCategorias() {
-        if (categoriaRepository.count() > 0) {
-            return categoriaRepository.findAll();
+    private List<Categoria> ensureDefaultCategorias(Usuario admin) {
+        // Verificar se o admin já tem categorias
+        List<Categoria> existentes = categoriaRepository.findAtivasByUsuario(admin.getId());
+        if (!existentes.isEmpty()) {
+            LOGGER.info("Admin já possui {} categorias", existentes.size());
+            return existentes;
         }
 
+        LOGGER.info("Criando categorias padrão para o admin...");
         List<Categoria> categorias = List.of(
-                Categoria.builder().nome("Salário").descricao("Receita de salário mensal").tipo(TipoCategoria.RECEITA).build(),
-                Categoria.builder().nome("Freelance").descricao("Trabalhos extras e freelances").tipo(TipoCategoria.RECEITA).build(),
-                Categoria.builder().nome("Investimentos").descricao("Rendimentos de investimentos").tipo(TipoCategoria.RECEITA).build(),
-                Categoria.builder().nome("Vendas").descricao("Vendas de produtos ou serviços").tipo(TipoCategoria.RECEITA).build(),
-                Categoria.builder().nome("Aluguel Recebido").descricao("Receita de aluguel de imóveis").tipo(TipoCategoria.RECEITA).build(),
-                Categoria.builder().nome("Alimentação").descricao("Gastos com alimentação e supermercado").tipo(TipoCategoria.DESPESA).build(),
-                Categoria.builder().nome("Transporte").descricao("Combustível, uber, transporte público").tipo(TipoCategoria.DESPESA).build(),
-                Categoria.builder().nome("Moradia").descricao("Aluguel, condomínio, IPTU").tipo(TipoCategoria.DESPESA).build(),
-                Categoria.builder().nome("Saúde").descricao("Plano de saúde, medicamentos, consultas").tipo(TipoCategoria.DESPESA).build(),
-                Categoria.builder().nome("Lazer").descricao("Cinema, restaurantes, viagens").tipo(TipoCategoria.DESPESA).build(),
-                Categoria.builder().nome("Educação").descricao("Cursos e capacitações").tipo(TipoCategoria.DESPESA).build(),
-                Categoria.builder().nome("Utilities").descricao("Energia, água, internet, telefone").tipo(TipoCategoria.DESPESA).build());
+                Categoria.builder().nome("Salário").descricao("Receita de salário mensal").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
+                Categoria.builder().nome("Freelance").descricao("Trabalhos extras e freelances").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
+                Categoria.builder().nome("Investimentos").descricao("Rendimentos de investimentos").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
+                Categoria.builder().nome("Vendas").descricao("Vendas de produtos ou serviços").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
+                Categoria.builder().nome("Aluguel Recebido").descricao("Receita de aluguel de imóveis").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
+                Categoria.builder().nome("Alimentação").descricao("Gastos com alimentação e supermercado").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
+                Categoria.builder().nome("Transporte").descricao("Combustível, uber, transporte público").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
+                Categoria.builder().nome("Moradia").descricao("Aluguel, condomínio, IPTU").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
+                Categoria.builder().nome("Saúde").descricao("Plano de saúde, medicamentos, consultas").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
+                Categoria.builder().nome("Lazer").descricao("Cinema, restaurantes, viagens").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
+                Categoria.builder().nome("Educação").descricao("Cursos e capacitações").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
+                Categoria.builder().nome("Utilities").descricao("Energia, água, internet, telefone").tipo(TipoCategoria.DESPESA).usuario(admin).build());
 
         List<Categoria> salvas = categoriaRepository.saveAll(categorias);
-        LOGGER.info("{} categorias padrão criadas", salvas.size());
+        LOGGER.info("{} categorias padrão criadas para o admin", salvas.size());
         return salvas;
     }
 

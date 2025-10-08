@@ -6,6 +6,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,15 +37,22 @@ public class CategoriaController {
 
     private final CategoriaService categoriaService;
 
+    private String obterEmailUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getName();
+    }
+
     /**
      * Criar nova categoria
      */
     @PostMapping
     public ResponseEntity<CategoriaResponse> criarCategoria(@Valid @RequestBody CreateCategoriaRequest request) {
+        String emailUsuario = obterEmailUsuarioAutenticado();
         Categoria categoria = categoriaService.criarCategoria(
                 request.getNome(),
                 request.getDescricao(),
-                request.getTipo()
+                request.getTipo(),
+                emailUsuario
         );
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CategoriaResponse.fromEntity(categoria));
@@ -54,7 +63,8 @@ public class CategoriaController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<CategoriaResponse> buscarCategoria(@PathVariable UUID id) {
-        return categoriaService.buscarPorId(id)
+        String emailUsuario = obterEmailUsuarioAutenticado();
+        return categoriaService.buscarPorId(id, emailUsuario)
                 .map(categoria -> ResponseEntity.ok(CategoriaResponse.fromEntity(categoria)))
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -64,7 +74,8 @@ public class CategoriaController {
      */
     @GetMapping
     public ResponseEntity<List<CategoriaResponse>> listarCategorias() {
-        List<Categoria> categorias = categoriaService.listarAtivas();
+        String emailUsuario = obterEmailUsuarioAutenticado();
+        List<Categoria> categorias = categoriaService.listarAtivas(emailUsuario);
         List<CategoriaResponse> response = categorias.stream()
                 .map(CategoriaResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -76,7 +87,8 @@ public class CategoriaController {
      */
     @GetMapping("/tipo/{tipo}")
     public ResponseEntity<List<CategoriaResponse>> listarPorTipo(@PathVariable Categoria.TipoCategoria tipo) {
-        List<Categoria> categorias = categoriaService.listarPorTipo(tipo);
+        String emailUsuario = obterEmailUsuarioAutenticado();
+        List<Categoria> categorias = categoriaService.listarPorTipo(tipo, emailUsuario);
         List<CategoriaResponse> response = categorias.stream()
                 .map(CategoriaResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -98,10 +110,12 @@ public class CategoriaController {
             @Valid @RequestBody UpdateCategoriaRequest request) {
         
         try {
+            String emailUsuario = obterEmailUsuarioAutenticado();
             Categoria categoria = categoriaService.atualizarCategoria(
                     id,
                     request.getNome(),
-                    request.getDescricao()
+                    request.getDescricao(),
+                    emailUsuario
             );
             return ResponseEntity.ok(CategoriaResponse.fromEntity(categoria));
         } catch (IllegalArgumentException e) {
@@ -115,7 +129,8 @@ public class CategoriaController {
     @PatchMapping("/{id}/desativar")
     public ResponseEntity<Void> desativarCategoria(@PathVariable UUID id) {
         try {
-            categoriaService.desativarCategoria(id);
+            String emailUsuario = obterEmailUsuarioAutenticado();
+            categoriaService.desativarCategoria(id, emailUsuario);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -128,7 +143,8 @@ public class CategoriaController {
     @PatchMapping("/{id}/ativar")
     public ResponseEntity<Void> ativarCategoria(@PathVariable UUID id) {
         try {
-            categoriaService.ativarCategoria(id);
+            String emailUsuario = obterEmailUsuarioAutenticado();
+            categoriaService.ativarCategoria(id, emailUsuario);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();

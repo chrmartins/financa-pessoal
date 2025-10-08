@@ -60,11 +60,11 @@ public class TransacaoService {
     }
 
     public TransacaoResponse criarTransacaoParaUsuarioAutenticado(CreateTransacaoRequest request, String emailUsuario) {
-        Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
-                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
-        
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
+
+    Categoria categoria = categoriaRepository.findByIdAndUsuarioId(request.getCategoriaId(), usuario.getId())
+        .orElseThrow(() -> new RuntimeException("Categoria não encontrada para o usuário autenticado"));
 
         Transacao transacao = new Transacao();
         transacao.setDescricao(request.getDescricao());
@@ -80,11 +80,11 @@ public class TransacaoService {
     }
 
     public TransacaoResponse criarTransacao(CreateTransacaoRequest request, UUID usuarioId) {
-        Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
-                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
-        
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+    Categoria categoria = categoriaRepository.findByIdAndUsuarioId(request.getCategoriaId(), usuario.getId())
+        .orElseThrow(() -> new RuntimeException("Categoria não encontrada para o usuário informado"));
 
         Transacao transacao = new Transacao();
         transacao.setDescricao(request.getDescricao());

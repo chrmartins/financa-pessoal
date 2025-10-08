@@ -26,6 +26,7 @@ public class CategoriaResponse {
     private Boolean ativa;
     private LocalDateTime dataCriacao;
     private LocalDateTime dataAtualizacao;
+    private UUID usuarioId;
 
     /**
      * Converte entidade para DTO de resposta
@@ -39,6 +40,7 @@ public class CategoriaResponse {
                 .ativa(categoria.getAtiva())
                 .dataCriacao(categoria.getDataCriacao())
                 .dataAtualizacao(categoria.getDataAtualizacao())
+                .usuarioId(categoria.getUsuario() != null ? categoria.getUsuario().getId() : null)
                 .build();
     }
 }
