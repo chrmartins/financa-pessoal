@@ -29,7 +29,7 @@ public class CategoriaService {
     }
 
     @Transactional
-    public Categoria criarCategoria(String nome, String descricao, TipoCategoria tipo, String emailUsuario) {
+    public Categoria criarCategoria(String nome, String descricao, TipoCategoria tipo, String cor, String emailUsuario) {
         Usuario usuario = obterUsuario(emailUsuario);
 
         if (categoriaRepository.existsByNomeIgnoreCaseAndUsuarioId(nome, usuario.getId())) {
@@ -40,6 +40,7 @@ public class CategoriaService {
                 .nome(nome)
                 .descricao(descricao)
                 .tipo(tipo)
+                .cor(cor)
                 .usuario(usuario)
                 .build();
 
@@ -62,7 +63,7 @@ public class CategoriaService {
     }
 
     @Transactional
-    public Categoria atualizarCategoria(UUID id, String nome, String descricao, String emailUsuario) {
+    public Categoria atualizarCategoria(UUID id, String nome, String descricao, String cor, String emailUsuario) {
         Usuario usuario = obterUsuario(emailUsuario);
 
         Categoria categoria = categoriaRepository.findByIdAndUsuarioId(id, usuario.getId())
@@ -75,6 +76,7 @@ public class CategoriaService {
 
         categoria.setNome(nome);
         categoria.setDescricao(descricao);
+        categoria.setCor(cor);
         // Tipo não é alterado na atualização
 
         return categoriaRepository.save(categoria);

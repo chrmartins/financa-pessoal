@@ -22,4 +22,7 @@ public class UpdateCategoriaRequest {
 
     @Size(max = 200, message = "Descrição deve ter no máximo 200 caracteres")
     private String descricao;
+
+    @Size(max = 7, message = "Cor deve ter no máximo 7 caracteres (formato: #RRGGBB)")
+    private String cor;
 }

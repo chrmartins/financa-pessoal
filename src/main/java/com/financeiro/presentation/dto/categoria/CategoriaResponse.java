@@ -27,6 +27,7 @@ public class CategoriaResponse {
     private LocalDateTime dataCriacao;
     private LocalDateTime dataAtualizacao;
     private UUID usuarioId;
+    private String cor;
 
     /**
      * Converte entidade para DTO de resposta
@@ -41,6 +42,7 @@ public class CategoriaResponse {
                 .dataCriacao(categoria.getDataCriacao())
                 .dataAtualizacao(categoria.getDataAtualizacao())
                 .usuarioId(categoria.getUsuario() != null ? categoria.getUsuario().getId() : null)
+                .cor(categoria.getCor())
                 .build();
     }
 }

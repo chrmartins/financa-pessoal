@@ -73,18 +73,18 @@ public class BootstrapData implements ApplicationRunner {
 
         LOGGER.info("Criando categorias padrão para o admin...");
         List<Categoria> categorias = List.of(
-                Categoria.builder().nome("Salário").descricao("Receita de salário mensal").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
-                Categoria.builder().nome("Freelance").descricao("Trabalhos extras e freelances").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
-                Categoria.builder().nome("Investimentos").descricao("Rendimentos de investimentos").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
-                Categoria.builder().nome("Vendas").descricao("Vendas de produtos ou serviços").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
-                Categoria.builder().nome("Aluguel Recebido").descricao("Receita de aluguel de imóveis").tipo(TipoCategoria.RECEITA).usuario(admin).build(),
-                Categoria.builder().nome("Alimentação").descricao("Gastos com alimentação e supermercado").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
-                Categoria.builder().nome("Transporte").descricao("Combustível, uber, transporte público").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
-                Categoria.builder().nome("Moradia").descricao("Aluguel, condomínio, IPTU").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
-                Categoria.builder().nome("Saúde").descricao("Plano de saúde, medicamentos, consultas").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
-                Categoria.builder().nome("Lazer").descricao("Cinema, restaurantes, viagens").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
-                Categoria.builder().nome("Educação").descricao("Cursos e capacitações").tipo(TipoCategoria.DESPESA).usuario(admin).build(),
-                Categoria.builder().nome("Utilities").descricao("Energia, água, internet, telefone").tipo(TipoCategoria.DESPESA).usuario(admin).build());
+                Categoria.builder().nome("Salário").descricao("Receita de salário mensal").tipo(TipoCategoria.RECEITA).cor("#4CAF50").usuario(admin).build(),
+                Categoria.builder().nome("Freelance").descricao("Trabalhos extras e freelances").tipo(TipoCategoria.RECEITA).cor("#8BC34A").usuario(admin).build(),
+                Categoria.builder().nome("Investimentos").descricao("Rendimentos de investimentos").tipo(TipoCategoria.RECEITA).cor("#009688").usuario(admin).build(),
+                Categoria.builder().nome("Vendas").descricao("Vendas de produtos ou serviços").tipo(TipoCategoria.RECEITA).cor("#00BCD4").usuario(admin).build(),
+                Categoria.builder().nome("Aluguel Recebido").descricao("Receita de aluguel de imóveis").tipo(TipoCategoria.RECEITA).cor("#66BB6A").usuario(admin).build(),
+                Categoria.builder().nome("Alimentação").descricao("Gastos com alimentação e supermercado").tipo(TipoCategoria.DESPESA).cor("#F44336").usuario(admin).build(),
+                Categoria.builder().nome("Transporte").descricao("Combustível, uber, transporte público").tipo(TipoCategoria.DESPESA).cor("#FF5722").usuario(admin).build(),
+                Categoria.builder().nome("Moradia").descricao("Aluguel, condomínio, IPTU").tipo(TipoCategoria.DESPESA).cor("#E91E63").usuario(admin).build(),
+                Categoria.builder().nome("Saúde").descricao("Plano de saúde, medicamentos, consultas").tipo(TipoCategoria.DESPESA).cor("#9C27B0").usuario(admin).build(),
+                Categoria.builder().nome("Lazer").descricao("Cinema, restaurantes, viagens").tipo(TipoCategoria.DESPESA).cor("#FF9800").usuario(admin).build(),
+                Categoria.builder().nome("Educação").descricao("Cursos e capacitações").tipo(TipoCategoria.DESPESA).cor("#3F51B5").usuario(admin).build(),
+                Categoria.builder().nome("Utilities").descricao("Energia, água, internet, telefone").tipo(TipoCategoria.DESPESA).cor("#795548").usuario(admin).build());
 
         List<Categoria> salvas = categoriaRepository.saveAll(categorias);
         LOGGER.info("{} categorias padrão criadas para o admin", salvas.size());

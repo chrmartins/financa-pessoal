@@ -73,6 +73,10 @@ public class Categoria {
     @JoinColumn(name = "usuario_id", nullable = false, columnDefinition = "UUID")
     private Usuario usuario;
 
+    @Size(max = 7, message = "Cor deve ter no máximo 7 caracteres")
+    @Column(name = "cor", length = 7)
+    private String cor;
+
     @PreUpdate
     public void preUpdate() {
         this.dataAtualizacao = LocalDateTime.now();

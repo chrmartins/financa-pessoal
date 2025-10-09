@@ -28,4 +28,7 @@ public class CreateCategoriaRequest {
 
     @NotNull(message = "Tipo da categoria é obrigatório")
     private Categoria.TipoCategoria tipo;
+
+    @Size(max = 7, message = "Cor deve ter no máximo 7 caracteres (formato: #RRGGBB)")
+    private String cor;
 }

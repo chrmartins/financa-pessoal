@@ -52,6 +52,7 @@ public class CategoriaController {
                 request.getNome(),
                 request.getDescricao(),
                 request.getTipo(),
+                request.getCor(),
                 emailUsuario
         );
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -115,6 +116,7 @@ public class CategoriaController {
                     id,
                     request.getNome(),
                     request.getDescricao(),
+                    request.getCor(),
                     emailUsuario
             );
             return ResponseEntity.ok(CategoriaResponse.fromEntity(categoria));
