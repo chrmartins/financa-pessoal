@@ -16,11 +16,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false # Desativa exibição de SQL no console
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        "[format_sql]": true
+        "[format_sql]": false # Desativa formatação de SQL
     open-in-view: false
 
   flyway:
@@ -59,7 +59,7 @@ security:
 
 logging:
   level:
-    "[com.financeiro]": DEBUG
-    "[org.springframework.security]": DEBUG
-    "[org.hibernate.SQL]": DEBUG
-    "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE
+    "[com.financeiro]": INFO # INFO ao invés de DEBUG (menos verboso)
+    "[org.springframework.security]": INFO # INFO ao invés de DEBUG
+    "[org.hibernate.SQL]": INFO # INFO ao invés de DEBUG (não mostra queries)
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": INFO # INFO ao invés de TRACE

@@ -2,13 +2,12 @@ package com.financeiro.infrastructure.utils;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Component;
 
 /**
  * Componente temporário para gerar hash de senha admin
- * Executar e depois remover/comentar
+ * DESABILITADO: Remova os comentários da anotação @Component para gerar hashes quando necessário
  */
-@Component
+// @Component  // Comentado para não executar automaticamente
 public class PasswordHashGenerator implements CommandLineRunner {
 
     @Override
