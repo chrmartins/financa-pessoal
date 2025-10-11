@@ -22,6 +22,7 @@ import com.financeiro.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
+// Popula o banco de dados com dados iniciais ao iniciar a aplicação
 @Component
 @RequiredArgsConstructor
 public class BootstrapData implements ApplicationRunner {
@@ -33,6 +34,7 @@ public class BootstrapData implements ApplicationRunner {
     private final TransacaoRepository transacaoRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
+    // Executa na inicialização: cria admin, categorias e transações de exemplo
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
@@ -46,6 +48,7 @@ public class BootstrapData implements ApplicationRunner {
         }
     }
 
+    // Cria o usuário admin padrão se não existir (email: admin@financeiro.com, senha: admin123)
     private Usuario ensureDefaultAdminUser() {
         return usuarioRepository.findByEmail("admin@financeiro.com")
                 .orElseGet(() -> {
@@ -63,6 +66,7 @@ public class BootstrapData implements ApplicationRunner {
                 });
     }
 
+    // Cria 12 categorias padrão com cores para o admin (5 receitas, 7 despesas)
     private List<Categoria> ensureDefaultCategorias(Usuario admin) {
         // Verificar se o admin já tem categorias
         List<Categoria> existentes = categoriaRepository.findAtivasByUsuario(admin.getId());
@@ -91,6 +95,7 @@ public class BootstrapData implements ApplicationRunner {
         return salvas;
     }
 
+    // Cria 2 transações de exemplo (1 receita e 1 despesa) se o banco estiver vazio
     private void ensureDefaultTransacoes(Usuario usuario, List<Categoria> categorias) {
         if (transacaoRepository.count() > 0) {
             return;
@@ -121,6 +126,7 @@ public class BootstrapData implements ApplicationRunner {
         LOGGER.info("{} transações de exemplo criadas", transacoes.size());
     }
 
+    // Busca uma categoria pelo nome (case-insensitive) na lista fornecida
     private Categoria buscarCategoria(List<Categoria> categorias, String nome) {
         return categorias.stream()
                 .filter(cat -> cat.getNome().equalsIgnoreCase(nome))

@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Serviço de aplicação para gerenciar usuários.
- * Segue princípios de Clean Architecture e SOLID.
  */
 @Slf4j
 @Service
