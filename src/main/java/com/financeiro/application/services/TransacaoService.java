@@ -233,4 +233,160 @@ public class TransacaoService {
 
         return new ResumoFinanceiroResponse(totalReceitas, totalDespesas, saldo);
     }
+
+    // ====================================================================
+    // MÉTODOS SEGUROS - Usam o usuário autenticado do JWT
+    // ====================================================================
+
+    /**
+     * Lista transações do usuário autenticado com filtro opcional de período
+     * ✅ SEGURO: Usa email do JWT, não aceita usuarioId do frontend
+     */
+    @Transactional(readOnly = true)
+    public List<TransacaoResponse> listarTransacoesDoUsuarioAutenticado(
+            String emailUsuario, LocalDate dataInicio, LocalDate dataFim) {
+        
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
+        
+        List<Transacao> transacoes;
+        if (dataInicio != null && dataFim != null) {
+            transacoes = transacaoRepository.findByUsuarioIdAndDataTransacaoBetween(
+                    usuario.getId(), dataInicio, dataFim);
+        } else {
+            transacoes = transacaoRepository.findByUsuarioId(usuario.getId());
+        }
+        
+        return transacoes.stream()
+                .map(TransacaoResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Busca transação por ID validando se pertence ao usuário autenticado
+     * ✅ SEGURO: Valida propriedade da transação
+     */
+    @Transactional(readOnly = true)
+    public TransacaoResponse buscarPorIdDoUsuarioAutenticado(UUID id, String emailUsuario) {
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
+        
+        Transacao transacao = transacaoRepository.findByIdWithRelations(id)
+                .orElseThrow(() -> new RuntimeException("Transação não encontrada"));
+        
+        // Validar se a transação pertence ao usuário autenticado
+        if (!transacao.getUsuario().getId().equals(usuario.getId())) {
+            throw new RuntimeException("Acesso negado: transação pertence a outro usuário");
+        }
+        
+        return TransacaoResponse.fromEntity(transacao);
+    }
+
+    /**
+     * Atualiza transação validando se pertence ao usuário autenticado
+     * ✅ SEGURO: Valida propriedade antes de atualizar
+     */
+    public TransacaoResponse atualizarTransacaoDoUsuarioAutenticado(
+            UUID id, UpdateTransacaoRequest request, String emailUsuario) {
+        
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
+        
+        Transacao transacao = transacaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transação não encontrada"));
+        
+        // Validar se a transação pertence ao usuário autenticado
+        if (!transacao.getUsuario().getId().equals(usuario.getId())) {
+            throw new RuntimeException("Acesso negado: transação pertence a outro usuário");
+        }
+
+        if (request.getDescricao() != null) {
+            transacao.setDescricao(request.getDescricao());
+        }
+        if (request.getValor() != null) {
+            transacao.setValor(request.getValor());
+        }
+        if (request.getDataTransacao() != null) {
+            transacao.setDataTransacao(request.getDataTransacao());
+        }
+        if (request.getCategoriaId() != null) {
+            // Validar se a categoria pertence ao usuário
+            Categoria categoria = categoriaRepository.findByIdAndUsuarioId(
+                    request.getCategoriaId(), usuario.getId())
+                    .orElseThrow(() -> new RuntimeException("Categoria não encontrada para o usuário autenticado"));
+            transacao.setCategoria(categoria);
+        }
+        if (request.getObservacoes() != null) {
+            transacao.setObservacoes(request.getObservacoes());
+        }
+
+        Transacao atualizada = transacaoRepository.save(transacao);
+        return TransacaoResponse.fromEntity(atualizada);
+    }
+
+    /**
+     * Deleta transação validando se pertence ao usuário autenticado
+     * ✅ SEGURO: Valida propriedade antes de deletar
+     */
+    public void deletarTransacaoDoUsuarioAutenticado(UUID id, String emailUsuario) {
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
+        
+        Transacao transacao = transacaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transação não encontrada"));
+        
+        // Validar se a transação pertence ao usuário autenticado
+        if (!transacao.getUsuario().getId().equals(usuario.getId())) {
+            throw new RuntimeException("Acesso negado: transação pertence a outro usuário");
+        }
+        
+        transacaoRepository.deleteById(id);
+    }
+
+    /**
+     * Calcula saldo do usuário autenticado
+     * ✅ SEGURO: Usa email do JWT
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal calcularSaldoDoUsuarioAutenticado(String emailUsuario) {
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
+        
+        BigDecimal saldo = transacaoRepository.calcularSaldoPorUsuario(usuario.getId());
+        return saldo != null ? saldo : BigDecimal.ZERO;
+    }
+
+    /**
+     * Obtém resumo financeiro do usuário autenticado
+     * ✅ SEGURO: Usa email do JWT
+     */
+    @Transactional(readOnly = true)
+    public ResumoFinanceiroResponse obterResumoFinanceiroDoUsuarioAutenticado(
+            String emailUsuario, LocalDate dataInicio, LocalDate dataFim) {
+        
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
+        
+        List<Transacao> transacoes;
+        if (dataInicio != null && dataFim != null) {
+            transacoes = transacaoRepository.findByUsuarioIdAndDataTransacaoBetween(
+                    usuario.getId(), dataInicio, dataFim);
+        } else {
+            transacoes = transacaoRepository.findByUsuarioId(usuario.getId());
+        }
+
+        BigDecimal totalReceitas = transacoes.stream()
+                .filter(t -> t.getTipo() == Transacao.TipoTransacao.RECEITA)
+                .map(Transacao::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalDespesas = transacoes.stream()
+                .filter(t -> t.getTipo() == Transacao.TipoTransacao.DESPESA)
+                .map(Transacao::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal saldo = totalReceitas.subtract(totalDespesas);
+
+        return new ResumoFinanceiroResponse(totalReceitas, totalDespesas, saldo);
+    }
 }

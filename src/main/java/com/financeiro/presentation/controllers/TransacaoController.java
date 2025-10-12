@@ -1,14 +1,13 @@
 package com.financeiro.presentation.controllers;
 
 import java.math.BigDecimal;
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +26,11 @@ import com.financeiro.presentation.dto.transacao.UpdateTransacaoRequest;
 
 import jakarta.validation.Valid;
 
+/**
+ * Controller REST para gerenciamento de transações.
+ * SEGURANÇA: Todos os endpoints usam o usuário autenticado do JWT,
+ * ignorando qualquer usuarioId enviado pelo frontend.
+ */
 @RestController
 @RequestMapping("/api/transacoes")
 public class TransacaoController {
@@ -37,137 +41,135 @@ public class TransacaoController {
         this.transacaoService = transacaoService;
     }
 
+    /**
+     * Lista todas as transações do usuário autenticado
+     * ✅ SEGURO: Usa o email do JWT token
+     */
     @GetMapping
-    public ResponseEntity<List<TransacaoResponse>> listarTodas() {
-        List<TransacaoResponse> transacoes = transacaoService.listarTransacoes(null, null);
-        return ResponseEntity.ok(transacoes);
-    }
-
-    @GetMapping("/usuario/{usuarioId}")
-    public ResponseEntity<List<TransacaoResponse>> listarPorUsuario(
-            @PathVariable UUID usuarioId,
+    public ResponseEntity<List<TransacaoResponse>> listarMinhasTransacoes(
+            Principal principal,
             @RequestParam(required = false) LocalDate dataInicio,
             @RequestParam(required = false) LocalDate dataFim) {
         try {
-            List<TransacaoResponse> transacoes = transacaoService.listarTransacoesPorUsuario(usuarioId, dataInicio, dataFim);
+            String emailUsuarioAutenticado = principal.getName();
+            List<TransacaoResponse> transacoes = transacaoService.listarTransacoesDoUsuarioAutenticado(
+                    emailUsuarioAutenticado, dataInicio, dataFim);
             return ResponseEntity.ok(transacoes);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
+    /**
+     * Busca uma transação por ID
+     * ✅ SEGURO: Valida se a transação pertence ao usuário autenticado
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<TransacaoResponse> buscarTransacao(@PathVariable UUID id) {
+    public ResponseEntity<TransacaoResponse> buscarTransacao(
+            @PathVariable UUID id,
+            Principal principal) {
         try {
-            TransacaoResponse transacao = transacaoService.buscarPorId(id);
+            String emailUsuarioAutenticado = principal.getName();
+            TransacaoResponse transacao = transacaoService.buscarPorIdDoUsuarioAutenticado(id, emailUsuarioAutenticado);
             return ResponseEntity.ok(transacao);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    /**
+     * Cria uma nova transação para o usuário autenticado
+     * ✅ SEGURO: Usa o email do JWT token, ignora qualquer usuarioId do request
+     */
     @PostMapping
-    public ResponseEntity<TransacaoResponse> criarTransacao(@Valid @RequestBody CreateTransacaoRequest request) {
+    public ResponseEntity<TransacaoResponse> criarTransacao(
+            @Valid @RequestBody CreateTransacaoRequest request,
+            Principal principal) {
         try {
-            // Obter o email do usuário autenticado
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String emailUsuarioAutenticado = authentication.getName();
-            
-            TransacaoResponse transacao = transacaoService.criarTransacaoParaUsuarioAutenticado(request, emailUsuarioAutenticado);
+            String emailUsuarioAutenticado = principal.getName();
+            TransacaoResponse transacao = transacaoService.criarTransacaoParaUsuarioAutenticado(
+                    request, emailUsuarioAutenticado);
             return ResponseEntity.status(HttpStatus.CREATED).body(transacao);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
-    @PostMapping("/usuario/{usuarioId}")
-    public ResponseEntity<TransacaoResponse> criarTransacaoPorUsuario(
-            @PathVariable UUID usuarioId,
-            @Valid @RequestBody CreateTransacaoRequest request) {
-        try {
-            TransacaoResponse transacao = transacaoService.criarTransacao(request, usuarioId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(transacao);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
+    /**
+     * Atualiza uma transação
+     * ✅ SEGURO: Valida se a transação pertence ao usuário autenticado
+     */
     @PutMapping("/{id}")
     public ResponseEntity<TransacaoResponse> atualizarTransacao(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateTransacaoRequest request) {
+            @Valid @RequestBody UpdateTransacaoRequest request,
+            Principal principal) {
         try {
-            TransacaoResponse transacao = transacaoService.atualizarTransacao(id, request);
+            String emailUsuarioAutenticado = principal.getName();
+            TransacaoResponse transacao = transacaoService.atualizarTransacaoDoUsuarioAutenticado(
+                    id, request, emailUsuarioAutenticado);
             return ResponseEntity.ok(transacao);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    /**
+     * Deleta uma transação
+     * ✅ SEGURO: Valida se a transação pertence ao usuário autenticado
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarTransacao(@PathVariable UUID id) {
+    public ResponseEntity<Void> deletarTransacao(
+            @PathVariable UUID id,
+            Principal principal) {
         try {
-            transacaoService.deletarTransacao(id);
+            String emailUsuarioAutenticado = principal.getName();
+            transacaoService.deletarTransacaoDoUsuarioAutenticado(id, emailUsuarioAutenticado);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    /**
+     * Lista transações por período do usuário autenticado
+     * ✅ SEGURO: Usa o email do JWT token
+     */
     @GetMapping("/periodo")
     public ResponseEntity<List<TransacaoResponse>> listarPorPeriodo(
             @RequestParam LocalDate inicio,
-            @RequestParam LocalDate fim) {
-        List<TransacaoResponse> transacoes = transacaoService.listarTransacoes(inicio, fim);
+            @RequestParam LocalDate fim,
+            Principal principal) {
+        String emailUsuarioAutenticado = principal.getName();
+        List<TransacaoResponse> transacoes = transacaoService.listarTransacoesDoUsuarioAutenticado(
+                emailUsuarioAutenticado, inicio, fim);
         return ResponseEntity.ok(transacoes);
     }
 
+    /**
+     * Calcula o saldo do usuário autenticado
+     * ✅ SEGURO: Usa o email do JWT token
+     */
     @GetMapping("/saldo")
-    public ResponseEntity<BigDecimal> calcularSaldo() {
-        BigDecimal saldo = transacaoService.calcularSaldo();
+    public ResponseEntity<BigDecimal> calcularMeuSaldo(Principal principal) {
+        String emailUsuarioAutenticado = principal.getName();
+        BigDecimal saldo = transacaoService.calcularSaldoDoUsuarioAutenticado(emailUsuarioAutenticado);
         return ResponseEntity.ok(saldo);
     }
 
-    @GetMapping("/usuario/{usuarioId}/saldo")
-    public ResponseEntity<BigDecimal> calcularSaldoPorUsuario(@PathVariable UUID usuarioId) {
-        try {
-            BigDecimal saldo = transacaoService.calcularSaldoPorUsuario(usuarioId);
-            return ResponseEntity.ok(saldo);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
+    /**
+     * Obtém resumo financeiro do usuário autenticado
+     * ✅ SEGURO: Usa o email do JWT token
+     */
     @GetMapping("/resumo")
     public ResponseEntity<ResumoFinanceiroResponse> resumoFinanceiro(
             @RequestParam(required = false) LocalDate dataInicio,
             @RequestParam(required = false) LocalDate dataFim,
-            @RequestParam(required = false) UUID usuarioId) {
+            Principal principal) {
         try {
-            ResumoFinanceiroResponse resumo;
-            
-            // Se usuarioId foi fornecido, filtrar por usuário específico
-            if (usuarioId != null) {
-                resumo = transacaoService.obterResumoFinanceiroPorUsuario(usuarioId, dataInicio, dataFim);
-            } else {
-                // Caso contrário, retornar resumo geral
-                resumo = transacaoService.obterResumoFinanceiro(dataInicio, dataFim);
-            }
-            
-            return ResponseEntity.ok(resumo);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @GetMapping("/usuario/{usuarioId}/resumo")
-    public ResponseEntity<ResumoFinanceiroResponse> resumoFinanceiroPorUsuario(
-            @PathVariable UUID usuarioId,
-            @RequestParam(required = false) LocalDate dataInicio,
-            @RequestParam(required = false) LocalDate dataFim) {
-        try {
-            ResumoFinanceiroResponse resumo = transacaoService.obterResumoFinanceiroPorUsuario(usuarioId, dataInicio, dataFim);
+            String emailUsuarioAutenticado = principal.getName();
+            ResumoFinanceiroResponse resumo = transacaoService.obterResumoFinanceiroDoUsuarioAutenticado(
+                    emailUsuarioAutenticado, dataInicio, dataFim);
             return ResponseEntity.ok(resumo);
         } catch (Exception e) {
             e.printStackTrace();
