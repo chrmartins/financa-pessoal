@@ -26,4 +26,8 @@ public interface CategoriaRepository extends JpaRepository<Categoria, UUID> {
     boolean existsByNomeIgnoreCaseAndUsuarioId(String nome, UUID usuarioId);
 
     boolean existsByNomeIgnoreCaseAndUsuarioIdAndIdNot(String nome, UUID usuarioId, UUID id);
+    
+    // Métodos para suporte a deleção de usuário
+    long countByUsuarioId(UUID usuarioId);
+    void deleteByUsuarioId(UUID usuarioId);
 }

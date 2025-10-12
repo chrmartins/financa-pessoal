@@ -50,4 +50,8 @@ public interface TransacaoRepository extends JpaRepository<Transacao, UUID> {
 
     @Query("SELECT (COALESCE(SUM(CASE WHEN t.tipo = 'RECEITA' THEN t.valor ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN t.tipo = 'DESPESA' THEN t.valor ELSE 0 END), 0)) FROM Transacao t WHERE t.usuario.id = :usuarioId")
     BigDecimal calcularSaldoPorUsuario(UUID usuarioId);
+    
+    // Métodos para suporte a deleção de usuário
+    long countByUsuarioId(UUID usuarioId);
+    void deleteByUsuarioId(UUID usuarioId);
 }

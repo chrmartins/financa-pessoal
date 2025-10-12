@@ -142,4 +142,26 @@ public class UsuarioController {
             return ResponseEntity.notFound().build();
         }
     }
+    
+    /**
+     * Deletar permanentemente um usuário e todos os seus dados (transações, categorias).
+     * ATENÇÃO: Esta operação é irreversível e remove completamente o usuário do banco de dados.
+     * Apenas usuários com papel ADMIN podem executar esta operação.
+     * O usuário admin@financeiro.com não pode ser deletado.
+     */
+    @DeleteMapping("/{id}/permanente")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deletarUsuarioPermanentemente(@PathVariable UUID id) {
+        try {
+            usuarioService.deletarUsuarioPermanentemente(id);
+            return ResponseEntity.ok()
+                    .body("Usuário deletado permanentemente com sucesso. Todas as transações e categorias relacionadas foram removidas.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Usuário não encontrado");
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
+    }
 }

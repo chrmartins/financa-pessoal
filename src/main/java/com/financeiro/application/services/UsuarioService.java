@@ -13,6 +13,7 @@ import com.financeiro.domain.entities.Categoria;
 import com.financeiro.domain.entities.Categoria.TipoCategoria;
 import com.financeiro.domain.entities.Usuario;
 import com.financeiro.repository.CategoriaRepository;
+import com.financeiro.repository.TransacaoRepository;
 import com.financeiro.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final CategoriaRepository categoriaRepository;
+    private final TransacaoRepository transacaoRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -218,5 +220,47 @@ public class UsuarioService {
         usuario.setAtivo(true);
         usuarioRepository.save(usuario);
         log.info("Usuário ativado: {}", usuario.getEmail());
+    }
+    
+    /**
+     * Deleta permanentemente um usuário e todos os seus dados relacionados (transações e categorias).
+     * ATENÇÃO: Esta operação é irreversível e remove completamente o usuário do banco de dados.
+     * 
+     * @param id UUID do usuário a ser deletado
+     * @throws IllegalArgumentException se o usuário não for encontrado
+     * @throws IllegalStateException se tentar deletar o usuário admin
+     */
+    @Transactional
+    public void deletarUsuarioPermanentemente(UUID id) {
+        log.warn("Iniciando deleção permanente do usuário com ID: {}", id);
+        
+        // Buscar usuário
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+        
+        // Proteção: não permitir deletar o admin
+        if ("admin@financeiro.com".equals(usuario.getEmail())) {
+            log.error("Tentativa de deletar o usuário admin bloqueada");
+            throw new IllegalStateException("Não é permitido deletar o usuário administrador do sistema");
+        }
+        
+        String email = usuario.getEmail();
+        
+        // Contar registros antes de deletar (para logging)
+        long qtdTransacoes = transacaoRepository.countByUsuarioId(id);
+        long qtdCategorias = categoriaRepository.countByUsuarioId(id);
+        
+        log.info("Deletando {} transação(ões) do usuário {}", qtdTransacoes, email);
+        transacaoRepository.deleteByUsuarioId(id);
+        
+        log.info("Deletando {} categoria(s) do usuário {}", qtdCategorias, email);
+        categoriaRepository.deleteByUsuarioId(id);
+        
+        log.info("Deletando usuário {}", email);
+        usuarioRepository.delete(usuario);
+        
+        log.warn("Usuário {} deletado permanentemente com sucesso. " +
+                "Removidas {} transação(ões) e {} categoria(s)", 
+                email, qtdTransacoes, qtdCategorias);
     }
 }
