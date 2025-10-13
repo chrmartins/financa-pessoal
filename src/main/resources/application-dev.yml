@@ -54,8 +54,13 @@ app:
 
 security:
   jwt:
-    secret: "dev-secret-key-for-local-development-only"
-    expiration-time: 86400000
+    secret: ${JWT_SECRET:dev-secret-key-for-local-development-only}
+    expiration-time: ${JWT_EXPIRATION:86400000}
+
+google:
+  client:
+    id: ${GOOGLE_CLIENT_ID}
+    secret: ${GOOGLE_CLIENT_SECRET}
 
 logging:
   level:

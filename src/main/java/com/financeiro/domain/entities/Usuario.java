@@ -55,9 +55,12 @@ public class Usuario implements UserDetails {
     @Column(name = "email", nullable = false, unique = true, length = 150)
     private String email;
 
-    @NotBlank(message = "Senha é obrigatória")
+    /**
+     * Senha criptografada (BCrypt).
+     * Pode ser NULL para usuários que fazem login apenas com Google.
+     */
     @Size(min = 6, message = "Senha deve ter pelo menos 6 caracteres")
-    @Column(name = "senha", nullable = false)
+    @Column(name = "senha")
     private String senha;
 
     @Enumerated(EnumType.STRING)
@@ -78,6 +81,18 @@ public class Usuario implements UserDetails {
 
     @Column(name = "ultimo_acesso")
     private LocalDateTime ultimoAcesso;
+
+    /**
+     * ID único do Google para autenticação OAuth
+     */
+    @Column(name = "google_id", unique = true, length = 255)
+    private String googleId;
+
+    /**
+     * URL da foto do perfil do Google
+     */
+    @Column(name = "foto", length = 500)
+    private String foto;
 
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transacao> transacoes;

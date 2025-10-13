@@ -192,12 +192,65 @@ Para utilizar os dados de exemplo em ambiente local:
 
 ## 🏃‍♂️ Executando a Aplicação
 
+### 📋 Pré-requisitos
+
+1. **Java 21** instalado
+2. **Docker & Docker Compose** para PostgreSQL
+3. **Variáveis de Ambiente** configuradas
+
+### ⚙️ Configuração Inicial
+
+#### 1. Copiar arquivo de variáveis de ambiente
+
+```bash
+# Copiar o template de exemplo
+cp .env.example .env
+
+# Editar o arquivo .env com suas credenciais reais
+# IMPORTANTE: O arquivo .env está no .gitignore e NÃO será commitado
+```
+
+#### 2. Configurar credenciais no arquivo `.env`
+
+```bash
+# Banco de Dados
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=financeiro
+DB_USERNAME=financeirouser
+DB_PASSWORD=financeiropass
+
+# JWT
+JWT_SECRET=dev-secret-key-for-local-development-only
+JWT_EXPIRATION=86400000
+
+# Google OAuth (obtenha em https://console.cloud.google.com/)
+GOOGLE_CLIENT_ID=seu-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-sua-secret-aqui
+
+# Aplicação
+SPRING_PROFILES_ACTIVE=dev
+SERVER_PORT=8080
+```
+
+#### 3. Carregar variáveis de ambiente
+
+```bash
+# Opção 1: Exportar manualmente (temporário)
+export $(cat .env | xargs)
+
+# Opção 2: Usar com gradlew (recomendado)
+# As variáveis serão carregadas automaticamente pelo sistema
+```
+
 ### Modo Desenvolvimento (PostgreSQL - Padrão)
 
 ```bash
+# 1. Subir PostgreSQL
+./start-postgres.sh
 
-# 2. Executar aplicação
-./gradlew bootRun
+# 2. Carregar variáveis de ambiente e executar aplicação
+export $(cat .env | xargs) && ./gradlew bootRun
 ```
 
 - **PostgreSQL**: `localhost:5432`

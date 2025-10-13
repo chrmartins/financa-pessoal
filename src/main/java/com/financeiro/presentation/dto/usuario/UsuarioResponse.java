@@ -27,6 +27,7 @@ public class UsuarioResponse {
     private LocalDateTime dataCriacao;
     private LocalDateTime dataAtualizacao;
     private LocalDateTime ultimoAcesso;
+    private String foto; // URL da foto do perfil
 
     /**
      * Converte entidade para DTO de resposta (sem senha)
@@ -41,6 +42,7 @@ public class UsuarioResponse {
                 .dataCriacao(usuario.getDataCriacao())
                 .dataAtualizacao(usuario.getDataAtualizacao())
                 .ultimoAcesso(usuario.getUltimoAcesso())
+                .foto(usuario.getFoto())
                 .build();
     }
 }
