@@ -63,9 +63,69 @@ public class TransacaoService {
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
 
-    Categoria categoria = categoriaRepository.findByIdAndUsuarioId(request.getCategoriaId(), usuario.getId())
-        .orElseThrow(() -> new RuntimeException("Categoria não encontrada para o usuário autenticado"));
+        Categoria categoria = categoriaRepository.findByIdAndUsuarioId(request.getCategoriaId(), usuario.getId())
+                .orElseThrow(() -> new RuntimeException("Categoria não encontrada para o usuário autenticado"));
 
+        // Se for transação recorrente com múltiplas parcelas
+        if (Boolean.TRUE.equals(request.getRecorrente()) && request.getQuantidadeParcelas() != null && request.getQuantidadeParcelas() > 1) {
+            return criarTransacaoRecorrente(request, usuario, categoria);
+        }
+
+        // Transação única
+        Transacao transacao = criarTransacaoEntity(request, usuario, categoria, false, null, null, null);
+        Transacao salva = transacaoRepository.save(transacao);
+        return TransacaoResponse.fromEntity(salva);
+    }
+
+    /**
+     * Cria uma transação recorrente (com múltiplas parcelas)
+     */
+    private TransacaoResponse criarTransacaoRecorrente(CreateTransacaoRequest request, Usuario usuario, Categoria categoria) {
+        // 1. Criar a primeira parcela (transação principal)
+        Transacao principal = criarTransacaoEntity(
+                request, 
+                usuario, 
+                categoria, 
+                true, 
+                request.getQuantidadeParcelas(), 
+                1, 
+                null
+        );
+        Transacao principalSalva = transacaoRepository.save(principal);
+
+        // 2. Criar as parcelas futuras (2, 3, 4, ..., quantidadeParcelas)
+        for (int i = 2; i <= request.getQuantidadeParcelas(); i++) {
+            LocalDate dataFutura = request.getDataTransacao().plusMonths(i - 1);
+            
+            Transacao parcela = criarTransacaoEntity(
+                    request,
+                    usuario,
+                    categoria,
+                    true,
+                    request.getQuantidadeParcelas(),
+                    i,
+                    principalSalva.getId() // ID da transação pai
+            );
+            parcela.setDataTransacao(dataFutura);
+            
+            transacaoRepository.save(parcela);
+        }
+
+        return TransacaoResponse.fromEntity(principalSalva);
+    }
+
+    /**
+     * Método auxiliar para criar uma entidade Transacao
+     */
+    private Transacao criarTransacaoEntity(
+            CreateTransacaoRequest request, 
+            Usuario usuario, 
+            Categoria categoria,
+            boolean recorrente,
+            Integer quantidadeParcelas,
+            Integer parcelaAtual,
+            UUID transacaoPaiId) {
+        
         Transacao transacao = new Transacao();
         transacao.setDescricao(request.getDescricao());
         transacao.setValor(request.getValor());
@@ -74,9 +134,12 @@ public class TransacaoService {
         transacao.setObservacoes(request.getObservacoes());
         transacao.setCategoria(categoria);
         transacao.setUsuario(usuario);
-
-        Transacao salva = transacaoRepository.save(transacao);
-        return TransacaoResponse.fromEntity(salva);
+        transacao.setRecorrente(recorrente);
+        transacao.setQuantidadeParcelas(quantidadeParcelas);
+        transacao.setParcelaAtual(parcelaAtual);
+        transacao.setTransacaoPaiId(transacaoPaiId);
+        
+        return transacao;
     }
 
     public TransacaoResponse criarTransacao(CreateTransacaoRequest request, UUID usuarioId) {

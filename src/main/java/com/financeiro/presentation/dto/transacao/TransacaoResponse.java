@@ -33,6 +33,12 @@ public class TransacaoResponse {
     private LocalDateTime dataAtualizacao;
     private CategoriaResponse categoria;
     private UsuarioResponse usuario;  // ✅ ADICIONADO
+    
+    // Campos de recorrência
+    private Boolean recorrente;
+    private Integer quantidadeParcelas;
+    private Integer parcelaAtual;
+    private UUID transacaoPaiId;
 
     /**
      * Converte entidade para DTO de resposta
@@ -49,6 +55,10 @@ public class TransacaoResponse {
                 .dataAtualizacao(transacao.getDataAtualizacao())
                 .categoria(CategoriaResponse.fromEntity(transacao.getCategoria()))
                 .usuario(UsuarioResponse.fromEntity(transacao.getUsuario()))  // ✅ ADICIONADO
+                .recorrente(transacao.getRecorrente())
+                .quantidadeParcelas(transacao.getQuantidadeParcelas())
+                .parcelaAtual(transacao.getParcelaAtual())
+                .transacaoPaiId(transacao.getTransacaoPaiId())
                 .build();
     }
 
@@ -75,6 +85,10 @@ public class TransacaoResponse {
                         .nome(transacao.getUsuario().getNome())
                         .email(transacao.getUsuario().getEmail())
                         .build())
+                .recorrente(transacao.getRecorrente())
+                .quantidadeParcelas(transacao.getQuantidadeParcelas())
+                .parcelaAtual(transacao.getParcelaAtual())
+                .transacaoPaiId(transacao.getTransacaoPaiId())
                 .build();
     }
 }

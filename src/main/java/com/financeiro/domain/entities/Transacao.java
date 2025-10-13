@@ -83,6 +83,31 @@ public class Transacao {
     @JoinColumn(name = "usuario_id", nullable = false, columnDefinition = "UUID")
     private Usuario usuario;
 
+    /**
+     * Indica se a transação é recorrente (parcelada)
+     */
+    @Column(name = "recorrente")
+    @Builder.Default
+    private Boolean recorrente = false;
+
+    /**
+     * Quantidade total de parcelas (se for recorrente)
+     */
+    @Column(name = "quantidade_parcelas")
+    private Integer quantidadeParcelas;
+
+    /**
+     * Número da parcela atual (1, 2, 3... quantidadeParcelas)
+     */
+    @Column(name = "parcela_atual")
+    private Integer parcelaAtual;
+
+    /**
+     * ID da transação pai (primeira parcela da série de recorrentes)
+     */
+    @Column(name = "transacao_pai_id", columnDefinition = "UUID")
+    private UUID transacaoPaiId;
+
     @PreUpdate
     public void preUpdate() {
         this.dataAtualizacao = LocalDateTime.now();
