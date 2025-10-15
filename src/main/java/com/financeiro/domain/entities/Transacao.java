@@ -7,6 +7,9 @@ import java.util.UUID;
 
 import org.hibernate.annotations.UuidGenerator;
 
+import com.financeiro.domain.enums.Frequencia;
+import com.financeiro.domain.enums.TipoRecorrencia;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -98,6 +101,7 @@ public class Transacao {
 
     /**
      * Número da parcela atual (1, 2, 3... quantidadeParcelas)
+     * Usado apenas para PARCELADA
      */
     @Column(name = "parcela_atual")
     private Integer parcelaAtual;
@@ -107,6 +111,28 @@ public class Transacao {
      */
     @Column(name = "transacao_pai_id", columnDefinition = "UUID")
     private UUID transacaoPaiId;
+
+    /**
+     * Tipo de recorrência: NAO_RECORRENTE, PARCELADA ou FIXA
+     */
+    @Column(name = "tipo_recorrencia", length = 20)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private TipoRecorrencia tipoRecorrencia = TipoRecorrencia.NAO_RECORRENTE;
+
+    /**
+     * Frequência da recorrência (usado apenas para FIXA)
+     */
+    @Column(name = "frequencia", length = 20)
+    @Enumerated(EnumType.STRING)
+    private Frequencia frequencia;
+
+    /**
+     * Indica se a transação está ativa (para gerar recorrências automáticas)
+     */
+    @Column(name = "ativa")
+    @Builder.Default
+    private Boolean ativa = true;
 
     @PreUpdate
     public void preUpdate() {

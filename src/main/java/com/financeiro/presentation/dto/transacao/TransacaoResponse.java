@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.financeiro.domain.entities.Transacao;
+import com.financeiro.domain.enums.Frequencia;
+import com.financeiro.domain.enums.TipoRecorrencia;
 import com.financeiro.presentation.dto.categoria.CategoriaResponse;
 import com.financeiro.presentation.dto.usuario.UsuarioResponse;
 
@@ -35,10 +37,13 @@ public class TransacaoResponse {
     private UsuarioResponse usuario;  // ✅ ADICIONADO
     
     // Campos de recorrência
-    private Boolean recorrente;
+    private TipoRecorrencia tipoRecorrencia;
+    private Frequencia frequencia;
+    private Boolean recorrente; // Deprecated - mantido para compatibilidade
     private Integer quantidadeParcelas;
     private Integer parcelaAtual;
     private UUID transacaoPaiId;
+    private Boolean ativa;
 
     /**
      * Converte entidade para DTO de resposta
@@ -55,10 +60,13 @@ public class TransacaoResponse {
                 .dataAtualizacao(transacao.getDataAtualizacao())
                 .categoria(CategoriaResponse.fromEntity(transacao.getCategoria()))
                 .usuario(UsuarioResponse.fromEntity(transacao.getUsuario()))  // ✅ ADICIONADO
+                .tipoRecorrencia(transacao.getTipoRecorrencia())
+                .frequencia(transacao.getFrequencia())
                 .recorrente(transacao.getRecorrente())
                 .quantidadeParcelas(transacao.getQuantidadeParcelas())
                 .parcelaAtual(transacao.getParcelaAtual())
                 .transacaoPaiId(transacao.getTransacaoPaiId())
+                .ativa(transacao.getAtiva())
                 .build();
     }
 
@@ -85,10 +93,13 @@ public class TransacaoResponse {
                         .nome(transacao.getUsuario().getNome())
                         .email(transacao.getUsuario().getEmail())
                         .build())
+                .tipoRecorrencia(transacao.getTipoRecorrencia())
+                .frequencia(transacao.getFrequencia())
                 .recorrente(transacao.getRecorrente())
                 .quantidadeParcelas(transacao.getQuantidadeParcelas())
                 .parcelaAtual(transacao.getParcelaAtual())
                 .transacaoPaiId(transacao.getTransacaoPaiId())
+                .ativa(transacao.getAtiva())
                 .build();
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.financeiro.domain.entities.Transacao;
+import com.financeiro.domain.enums.TipoRecorrencia;
 
 @Repository
 public interface TransacaoRepository extends JpaRepository<Transacao, UUID> {
@@ -51,7 +52,15 @@ public interface TransacaoRepository extends JpaRepository<Transacao, UUID> {
     @Query("SELECT (COALESCE(SUM(CASE WHEN t.tipo = 'RECEITA' THEN t.valor ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN t.tipo = 'DESPESA' THEN t.valor ELSE 0 END), 0)) FROM Transacao t WHERE t.usuario.id = :usuarioId")
     BigDecimal calcularSaldoPorUsuario(UUID usuarioId);
     
+    
     // Métodos para suporte a deleção de usuário
     long countByUsuarioId(UUID usuarioId);
     void deleteByUsuarioId(UUID usuarioId);
+    
+    // Métodos para recorrências
+    @Query("SELECT t FROM Transacao t LEFT JOIN FETCH t.usuario LEFT JOIN FETCH t.categoria WHERE t.tipoRecorrencia = :tipoRecorrencia AND t.ativa = :ativa")
+    List<Transacao> findByTipoRecorrenciaAndAtiva(TipoRecorrencia tipoRecorrencia, Boolean ativa);
+    
+    boolean existsByTransacaoPaiIdAndDataTransacao(UUID transacaoPaiId, LocalDate dataTransacao);
 }
+

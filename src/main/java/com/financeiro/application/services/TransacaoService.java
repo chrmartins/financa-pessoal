@@ -2,6 +2,7 @@ package com.financeiro.application.services;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.financeiro.domain.entities.Categoria;
 import com.financeiro.domain.entities.Transacao;
 import com.financeiro.domain.entities.Usuario;
+import com.financeiro.domain.enums.TipoRecorrencia;
 import com.financeiro.presentation.dto.transacao.CreateTransacaoRequest;
 import com.financeiro.presentation.dto.transacao.ResumoFinanceiroResponse;
 import com.financeiro.presentation.dto.transacao.TransacaoResponse;
@@ -20,6 +22,9 @@ import com.financeiro.repository.CategoriaRepository;
 import com.financeiro.repository.TransacaoRepository;
 import com.financeiro.repository.UsuarioRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @Transactional
 public class TransacaoService {
@@ -66,20 +71,147 @@ public class TransacaoService {
         Categoria categoria = categoriaRepository.findByIdAndUsuarioId(request.getCategoriaId(), usuario.getId())
                 .orElseThrow(() -> new RuntimeException("Categoria não encontrada para o usuário autenticado"));
 
-        // Se for transação recorrente com múltiplas parcelas
-        if (Boolean.TRUE.equals(request.getRecorrente()) && request.getQuantidadeParcelas() != null && request.getQuantidadeParcelas() > 1) {
-            return criarTransacaoRecorrente(request, usuario, categoria);
-        }
+        // Validar request com base no tipo de recorrência
+        validarRequest(request);
 
-        // Transação única
-        Transacao transacao = criarTransacaoEntity(request, usuario, categoria, false, null, null, null);
+        // Rotear para método apropriado baseado no tipo de recorrência
+        return switch (request.getTipoRecorrencia()) {
+            case NAO_RECORRENTE -> criarTransacaoSimples(request, usuario, categoria);
+            case PARCELADA -> criarTransacaoParcelada(request, usuario, categoria);
+            case FIXA -> criarTransacaoFixa(request, usuario, categoria);
+        };
+    }
+
+    /**
+     * Valida os campos obrigatórios conforme o tipo de recorrência
+     */
+    private void validarRequest(CreateTransacaoRequest request) {
+        if (request.getTipoRecorrencia() == TipoRecorrencia.PARCELADA) {
+            if (request.getQuantidadeParcelas() == null) {
+                throw new IllegalArgumentException("Quantidade de parcelas é obrigatória para transações PARCELADA");
+            }
+            if (request.getQuantidadeParcelas() < 2 || request.getQuantidadeParcelas() > 60) {
+                throw new IllegalArgumentException("Quantidade de parcelas deve estar entre 2 e 60");
+            }
+        }
+        
+        if (request.getTipoRecorrencia() == TipoRecorrencia.FIXA) {
+            if (request.getFrequencia() == null) {
+                throw new IllegalArgumentException("Frequência é obrigatória para transações FIXA");
+            }
+        }
+    }
+
+    /**
+     * Cria uma transação simples (não recorrente)
+     */
+    private TransacaoResponse criarTransacaoSimples(CreateTransacaoRequest request, Usuario usuario, Categoria categoria) {
+        log.info("Criando transação simples para usuário {}", usuario.getEmail());
+        
+        Transacao transacao = Transacao.builder()
+                .descricao(request.getDescricao())
+                .valor(request.getValor())
+                .dataTransacao(request.getDataTransacao())
+                .tipo(request.getTipo())
+                .observacoes(request.getObservacoes())
+                .categoria(categoria)
+                .usuario(usuario)
+                .tipoRecorrencia(TipoRecorrencia.NAO_RECORRENTE)
+                .ativa(true)
+                .build();
+        
         Transacao salva = transacaoRepository.save(transacao);
+        log.info("Transação simples criada com ID: {}", salva.getId());
+        
         return TransacaoResponse.fromEntity(salva);
     }
 
     /**
-     * Cria uma transação recorrente (com múltiplas parcelas)
+     * Cria todas as parcelas de uma transação parcelada
      */
+    private TransacaoResponse criarTransacaoParcelada(CreateTransacaoRequest request, Usuario usuario, Categoria categoria) {
+        log.info("Criando transação parcelada com {} parcelas para usuário {}", 
+                request.getQuantidadeParcelas(), usuario.getEmail());
+        
+        List<Transacao> parcelas = new ArrayList<>();
+        
+        // 1. Criar primeira parcela (pai)
+        Transacao primeira = Transacao.builder()
+                .descricao(request.getDescricao() + " (1/" + request.getQuantidadeParcelas() + ")")
+                .valor(request.getValor())
+                .dataTransacao(request.getDataTransacao())
+                .tipo(request.getTipo())
+                .observacoes(request.getObservacoes())
+                .categoria(categoria)
+                .usuario(usuario)
+                .tipoRecorrencia(TipoRecorrencia.PARCELADA)
+                .quantidadeParcelas(request.getQuantidadeParcelas())
+                .parcelaAtual(1)
+                .ativa(true)
+                .build();
+        
+        Transacao primeiraSalva = transacaoRepository.save(primeira);
+        parcelas.add(primeiraSalva);
+        
+        // 2. Criar demais parcelas (2 a N)
+        for (int i = 2; i <= request.getQuantidadeParcelas(); i++) {
+            LocalDate dataParcela = request.getDataTransacao().plusMonths(i - 1);
+            
+            Transacao parcela = Transacao.builder()
+                    .descricao(request.getDescricao() + " (" + i + "/" + request.getQuantidadeParcelas() + ")")
+                    .valor(request.getValor())
+                    .dataTransacao(dataParcela)
+                    .tipo(request.getTipo())
+                    .observacoes(request.getObservacoes())
+                    .categoria(categoria)
+                    .usuario(usuario)
+                    .tipoRecorrencia(TipoRecorrencia.PARCELADA)
+                    .quantidadeParcelas(request.getQuantidadeParcelas())
+                    .parcelaAtual(i)
+                    .transacaoPaiId(primeiraSalva.getId())
+                    .ativa(true)
+                    .build();
+            
+            Transacao parcelaSalva = transacaoRepository.save(parcela);
+            parcelas.add(parcelaSalva);
+        }
+        
+        log.info("Transação parcelada criada: {} parcelas geradas", parcelas.size());
+        
+        return TransacaoResponse.fromEntity(primeiraSalva);
+    }
+
+    /**
+     * Cria apenas a primeira ocorrência de uma transação fixa (recorrente automática)
+     */
+    private TransacaoResponse criarTransacaoFixa(CreateTransacaoRequest request, Usuario usuario, Categoria categoria) {
+        log.info("Criando transação fixa com frequência {} para usuário {}", 
+                request.getFrequencia(), usuario.getEmail());
+        
+        Transacao transacao = Transacao.builder()
+                .descricao(request.getDescricao())
+                .valor(request.getValor())
+                .dataTransacao(request.getDataTransacao())
+                .tipo(request.getTipo())
+                .observacoes(request.getObservacoes())
+                .categoria(categoria)
+                .usuario(usuario)
+                .tipoRecorrencia(TipoRecorrencia.FIXA)
+                .frequencia(request.getFrequencia())
+                .ativa(true)
+                .build();
+        
+        Transacao salva = transacaoRepository.save(transacao);
+        log.info("Transação fixa criada com ID: {}. Próximas ocorrências serão geradas automaticamente.", salva.getId());
+        
+        return TransacaoResponse.fromEntity(salva);
+    }
+
+    /**
+     * DEPRECATED: Método antigo de criar transação recorrente
+     * Use criarTransacaoParcelada() através de criarTransacaoParaUsuarioAutenticado()
+     */
+    @Deprecated
     private TransacaoResponse criarTransacaoRecorrente(CreateTransacaoRequest request, Usuario usuario, Categoria categoria) {
         // 1. Criar a primeira parcela (transação principal)
         Transacao principal = criarTransacaoEntity(

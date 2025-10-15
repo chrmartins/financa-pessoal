@@ -5,8 +5,12 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import com.financeiro.domain.entities.Transacao;
+import com.financeiro.domain.enums.Frequencia;
+import com.financeiro.domain.enums.TipoRecorrencia;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -47,15 +51,31 @@ public class CreateTransacaoRequest {
     private String observacoes;
 
     /**
-     * Indica se a transação é recorrente (parcelada)
+     * Tipo de recorrência: NAO_RECORRENTE, PARCELADA ou FIXA
      */
+    @NotNull(message = "Tipo de recorrência é obrigatório")
     @Builder.Default
-    private Boolean recorrente = false;
+    private TipoRecorrencia tipoRecorrencia = TipoRecorrencia.NAO_RECORRENTE;
 
     /**
-     * Quantidade de parcelas para transações recorrentes.
-     * Deve ser informado quando recorrente = true
+     * Quantidade de parcelas para transações PARCELADA.
+     * Obrigatório quando tipoRecorrencia = PARCELADA (min: 2, max: 60)
      */
-    @Positive(message = "Quantidade de parcelas deve ser positiva")
+    @Min(value = 2, message = "Quantidade de parcelas deve ser no mínimo 2")
+    @Max(value = 60, message = "Quantidade de parcelas deve ser no máximo 60")
     private Integer quantidadeParcelas;
+
+    /**
+     * Frequência da recorrência (usado apenas para FIXA)
+     * Obrigatório quando tipoRecorrencia = FIXA
+     */
+    private Frequencia frequencia;
+
+    /**
+     * Indica se a transação é recorrente (parcelada) - DEPRECATED
+     * Mantido para compatibilidade, usar tipoRecorrencia
+     */
+    @Deprecated
+    @Builder.Default
+    private Boolean recorrente = false;
 }

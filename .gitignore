@@ -41,6 +41,13 @@ buildNumber.properties
 logs/
 *.log
 
+# Documentation (generated/temporary markdown files)
+*.md
+!README.md
+!CONTRIBUTING.md
+!LICENSE.md
+!CHANGELOG.md
+
 # Runtime data
 pids
 *.pid

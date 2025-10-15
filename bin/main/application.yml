@@ -23,6 +23,13 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
 
+  # Configuração do scheduler para jobs de recorrências
+  task:
+    scheduling:
+      pool:
+        size: 2
+      thread-name-prefix: scheduling-
+
 server:
   port: ${PORT:8080}
 
