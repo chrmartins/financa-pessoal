@@ -62,5 +62,8 @@ public interface TransacaoRepository extends JpaRepository<Transacao, UUID> {
     List<Transacao> findByTipoRecorrenciaAndAtiva(TipoRecorrencia tipoRecorrencia, Boolean ativa);
     
     boolean existsByTransacaoPaiIdAndDataTransacao(UUID transacaoPaiId, LocalDate dataTransacao);
+    
+    @Query("SELECT t FROM Transacao t WHERE t.transacaoPaiId = :transacaoPaiId ORDER BY t.dataTransacao DESC LIMIT 1")
+    java.util.Optional<Transacao> findTopByTransacaoPaiIdOrderByDataTransacaoDesc(UUID transacaoPaiId);
 }
 

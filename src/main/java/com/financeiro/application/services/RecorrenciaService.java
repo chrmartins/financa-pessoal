@@ -27,51 +27,94 @@ public class RecorrenciaService {
     /**
      * Job executado diariamente às 02:00 para gerar transações fixas
      * Cron: segundo, minuto, hora, dia do mês, mês, dia da semana
+     * 
+     * CORREÇÃO: Agora cria TODAS as ocorrências necessárias até 1 mês no futuro
      */
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
     public void processarRecorrenciasFixas() {
-        log.info("Iniciando processamento de recorrências fixas...");
+        log.info("🔄 Iniciando processamento de recorrências fixas...");
         
         LocalDate hoje = LocalDate.now();
+        LocalDate dataLimite = hoje.plusMonths(1); // Cria até 1 mês no futuro
         
-        // Buscar todas as transações FIXA que estão ativas
-        List<Transacao> transacoesFixas = transacaoRepository.findByTipoRecorrenciaAndAtiva(
+        // Buscar todas as transações FIXA que estão ativas E são "origem" (transacaoPaiId é nulo)
+        List<Transacao> transacoesOrigem = transacaoRepository.findByTipoRecorrenciaAndAtiva(
                 TipoRecorrencia.FIXA, true);
         
-        log.info("Encontradas {} transações fixas ativas", transacoesFixas.size());
+        // Filtrar apenas as transações origem (que não têm pai)
+        transacoesOrigem = transacoesOrigem.stream()
+                .filter(t -> t.getTransacaoPaiId() == null)
+                .toList();
         
-        int geradas = 0;
+        log.info("📋 Encontradas {} transações FIXA ativas (origem)", transacoesOrigem.size());
         
-        for (Transacao transacaoOriginal : transacoesFixas) {
+        int totalGeradas = 0;
+        
+        for (Transacao transacaoOrigem : transacoesOrigem) {
             try {
-                // Calcular a próxima data de ocorrência
-                LocalDate proximaData = transacaoOriginal.getFrequencia()
-                        .calcularProximaData(transacaoOriginal.getDataTransacao());
+                int geradas = processarTransacaoFixa(transacaoOrigem, hoje, dataLimite);
+                totalGeradas += geradas;
                 
-                // Se a próxima data já passou ou é hoje, criar nova transação
-                if (!proximaData.isAfter(hoje)) {
-                    // Verificar se já existe transação para essa data (evitar duplicação)
-                    boolean jaExiste = transacaoRepository.existsByTransacaoPaiIdAndDataTransacao(
-                            transacaoOriginal.getId(), proximaData);
-                    
-                    if (!jaExiste) {
-                        criarProximaOcorrencia(transacaoOriginal, proximaData);
-                        geradas++;
-                        log.info("Criada nova ocorrência para transação {} na data {}", 
-                                transacaoOriginal.getId(), proximaData);
-                    } else {
-                        log.debug("Ocorrência já existe para transação {} na data {}", 
-                                transacaoOriginal.getId(), proximaData);
-                    }
+                if (geradas > 0) {
+                    log.info("📊 '{}' criou {} novas ocorrências", 
+                            transacaoOrigem.getDescricao(), geradas);
                 }
             } catch (Exception e) {
-                log.error("Erro ao processar recorrência da transação {}: {}", 
-                        transacaoOriginal.getId(), e.getMessage(), e);
+                log.error("❌ Erro ao processar recorrência da transação {}: {}", 
+                        transacaoOrigem.getId(), e.getMessage(), e);
             }
         }
         
-        log.info("Processamento de recorrências fixas concluído. {} novas transações geradas", geradas);
+        log.info("✅ Processamento concluído. {} novas transações geradas no total", totalGeradas);
+    }
+    
+    /**
+     * Processa uma transação FIXA, criando todas as ocorrências necessárias
+     */
+    private int processarTransacaoFixa(Transacao origem, LocalDate hoje, LocalDate dataLimite) {
+        // Encontra a última ocorrência criada
+        LocalDate ultimaData = encontrarUltimaOcorrencia(origem);
+        
+        // Se não houver ocorrências além da original, começa da data original
+        if (ultimaData == null) {
+            ultimaData = origem.getDataTransacao();
+        }
+        
+        // Calcula a próxima data a partir da última
+        LocalDate proximaData = origem.getFrequencia().calcularProximaData(ultimaData);
+        
+        int criadas = 0;
+        
+        // ✅ CORREÇÃO: Cria TODAS as ocorrências até a data limite
+        while (!proximaData.isAfter(dataLimite)) {
+            
+            // Verifica se já existe (evita duplicatas)
+            boolean jaExiste = transacaoRepository.existsByTransacaoPaiIdAndDataTransacao(
+                    origem.getId(), proximaData);
+            
+            if (!jaExiste) {
+                criarProximaOcorrencia(origem, proximaData);
+                criadas++;
+                log.debug("✅ Criada ocorrência: {} - {}", origem.getDescricao(), proximaData);
+            } else {
+                log.debug("⏭️  Ocorrência já existe: {} - {}", origem.getDescricao(), proximaData);
+            }
+            
+            // Calcula a próxima data (continua o loop)
+            proximaData = origem.getFrequencia().calcularProximaData(proximaData);
+        }
+        
+        return criadas;
+    }
+    
+    /**
+     * Encontra a última ocorrência criada para esta transação origem
+     */
+    private LocalDate encontrarUltimaOcorrencia(Transacao origem) {
+        return transacaoRepository.findTopByTransacaoPaiIdOrderByDataTransacaoDesc(origem.getId())
+                .map(Transacao::getDataTransacao)
+                .orElse(null);
     }
 
     /**
@@ -86,17 +129,16 @@ public class RecorrenciaService {
                 .observacoes(original.getObservacoes())
                 .categoria(original.getCategoria())
                 .usuario(original.getUsuario())
+                .recorrente(true)  // ✅ Marca como recorrente
                 .tipoRecorrencia(TipoRecorrencia.FIXA)
                 .frequencia(original.getFrequencia())
-                .transacaoPaiId(original.getId())
+                .transacaoPaiId(original.getId())  // Referencia a transação original
                 .ativa(true)
                 .build();
         
         transacaoRepository.save(novaOcorrencia);
         
-        // Atualizar a data da transação original para a próxima ocorrência
-        original.setDataTransacao(proximaData);
-        transacaoRepository.save(original);
+        log.debug("💾 Nova ocorrência salva: ID={}, Data={}", novaOcorrencia.getId(), proximaData);
     }
 
     /**
