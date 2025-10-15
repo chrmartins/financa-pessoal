@@ -99,6 +99,11 @@ public class TransacaoService {
             if (request.getFrequencia() == null) {
                 throw new IllegalArgumentException("Frequência é obrigatória para transações FIXA");
             }
+            
+            // ✅ RESTRIÇÃO: Transações FIXAS aceitam apenas frequência MENSAL
+            if (request.getFrequencia() != com.financeiro.domain.enums.Frequencia.MENSAL) {
+                throw new IllegalArgumentException("Transações FIXA suportam apenas frequência MENSAL no momento");
+            }
         }
     }
 

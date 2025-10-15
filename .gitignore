@@ -78,3 +78,4 @@ pids
 docker/data/
 docs/FEATURE_DEVELOPMENT_GUIDE_LOCAL.md
 .vercel
+*.md
