@@ -116,6 +116,7 @@ public class TransacaoService {
                 .observacoes(request.getObservacoes())
                 .categoria(categoria)
                 .usuario(usuario)
+                .recorrente(false)  // ✅ Transação única não é recorrente
                 .tipoRecorrencia(TipoRecorrencia.NAO_RECORRENTE)
                 .ativa(true)
                 .build();
@@ -144,6 +145,7 @@ public class TransacaoService {
                 .observacoes(request.getObservacoes())
                 .categoria(categoria)
                 .usuario(usuario)
+                .recorrente(true)  // ✅ Transação parcelada É recorrente
                 .tipoRecorrencia(TipoRecorrencia.PARCELADA)
                 .quantidadeParcelas(request.getQuantidadeParcelas())
                 .parcelaAtual(1)
@@ -165,6 +167,7 @@ public class TransacaoService {
                     .observacoes(request.getObservacoes())
                     .categoria(categoria)
                     .usuario(usuario)
+                    .recorrente(true)  // ✅ Parcela também é recorrente
                     .tipoRecorrencia(TipoRecorrencia.PARCELADA)
                     .quantidadeParcelas(request.getQuantidadeParcelas())
                     .parcelaAtual(i)
@@ -196,6 +199,7 @@ public class TransacaoService {
                 .observacoes(request.getObservacoes())
                 .categoria(categoria)
                 .usuario(usuario)
+                .recorrente(true)  // ✅ Transação fixa É recorrente
                 .tipoRecorrencia(TipoRecorrencia.FIXA)
                 .frequencia(request.getFrequencia())
                 .ativa(true)
