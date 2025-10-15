@@ -637,4 +637,141 @@ public class TransacaoService {
 
         return new ResumoFinanceiroResponse(totalReceitas, totalDespesas, saldo);
     }
+
+    /**
+     * Gera previsão de transações para um mês específico (FIXAS + PARCELADAS + NÃO RECORRENTES)
+     * 
+     * ESTRATÉGIA:
+     * 1. Busca transações REAIS já salvas no banco para aquele mês
+     * 2. Identifica transações FIXAS ativas e simula ocorrências que NÃO existem no banco
+     * 3. Retorna combinação de REAIS + SIMULADAS
+     * 
+     * ✅ EFICIENTE: Não salva no banco, apenas calcula
+     * ✅ ILIMITADO: Funciona para qualquer data futura
+     * ✅ SEGURO: Valida se transações pertencem ao usuário
+     * 
+     * @param emailUsuario Email do usuário autenticado
+     * @param mes Mês desejado (1-12)
+     * @param ano Ano desejado
+     * @return Lista com transações reais + simuladas para aquele mês
+     */
+    @Transactional(readOnly = true)
+    public List<TransacaoResponse> previsaoTransacoesParaMes(String emailUsuario, int mes, int ano) {
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado"));
+        
+        // Calcula primeiro e último dia do mês solicitado
+        LocalDate primeiroDiaMes = LocalDate.of(ano, mes, 1);
+        LocalDate ultimoDiaMes = primeiroDiaMes.withDayOfMonth(primeiroDiaMes.lengthOfMonth());
+        
+        log.info("🔮 Gerando previsão para {}/{} (usuário: {})", mes, ano, emailUsuario);
+        
+        // 1. Buscar transações REAIS que já existem no banco para este mês
+        List<Transacao> transacoesReais = transacaoRepository.findByUsuarioIdAndDataTransacaoBetween(
+                usuario.getId(), primeiroDiaMes, ultimoDiaMes);
+        
+        log.info("📊 Encontradas {} transações reais no banco para {}/{}", 
+                transacoesReais.size(), mes, ano);
+        
+        // 2. Buscar transações FIXAS ativas (origem) do usuário
+        List<Transacao> transacoesFixasOrigem = transacaoRepository
+                .findByTipoRecorrenciaAndAtiva(TipoRecorrencia.FIXA, true)
+                .stream()
+                .filter(t -> t.getTransacaoPaiId() == null) // Apenas origem
+                .filter(t -> t.getUsuario().getId().equals(usuario.getId())) // Apenas do usuário
+                .filter(t -> !t.getDataTransacao().isAfter(ultimoDiaMes)) // Criada antes/durante o mês
+                .toList();
+        
+        log.info("🔄 Encontradas {} transações FIXA ativas (origem)", transacoesFixasOrigem.size());
+        
+        // 3. Para cada transação FIXA, verificar se já existe real no mês, senão simular
+        List<TransacaoResponse> transacoesSimuladas = new ArrayList<>();
+        
+        for (Transacao origem : transacoesFixasOrigem) {
+            // Calcular qual seria a data da ocorrência neste mês
+            LocalDate dataOcorrencia = calcularDataOcorrenciaNoMes(origem, primeiroDiaMes, ultimoDiaMes);
+            
+            if (dataOcorrencia != null) {
+                // Verificar se JÁ EXISTE transação real com essa data
+                boolean jaExisteReal = transacoesReais.stream()
+                        .anyMatch(t -> t.getTransacaoPaiId() != null 
+                                && t.getTransacaoPaiId().equals(origem.getId())
+                                && t.getDataTransacao().equals(dataOcorrencia));
+                
+                if (!jaExisteReal) {
+                    // Simular a transação (criar objeto temporário SEM salvar no banco)
+                    TransacaoResponse simulada = simularOcorrencia(origem, dataOcorrencia);
+                    transacoesSimuladas.add(simulada);
+                    log.debug("✨ Simulada: '{}' para {}", origem.getDescricao(), dataOcorrencia);
+                }
+            }
+        }
+        
+        log.info("✨ Geradas {} transações simuladas", transacoesSimuladas.size());
+        
+        // 4. Combinar transações REAIS + SIMULADAS
+        List<TransacaoResponse> resultado = new ArrayList<>();
+        resultado.addAll(transacoesReais.stream().map(TransacaoResponse::fromEntity).toList());
+        resultado.addAll(transacoesSimuladas);
+        
+        // 5. Ordenar por data
+        resultado.sort((a, b) -> a.getDataTransacao().compareTo(b.getDataTransacao()));
+        
+        log.info("✅ Total final: {} transações ({} reais + {} simuladas)", 
+                resultado.size(), transacoesReais.size(), transacoesSimuladas.size());
+        
+        return resultado;
+    }
+
+    /**
+     * Calcula qual seria a data da próxima ocorrência dentro do mês especificado
+     * 
+     * @param origem Transação FIXA original
+     * @param primeiroDiaMes Primeiro dia do mês alvo
+     * @param ultimoDiaMes Último dia do mês alvo
+     * @return Data da ocorrência se cair no mês, null se não houver ocorrência no mês
+     */
+    private LocalDate calcularDataOcorrenciaNoMes(Transacao origem, LocalDate primeiroDiaMes, LocalDate ultimoDiaMes) {
+        LocalDate dataOrigem = origem.getDataTransacao();
+        LocalDate proximaData = dataOrigem;
+        
+        // Avançar até chegar no mês desejado ou passar dele
+        while (proximaData.isBefore(primeiroDiaMes)) {
+            proximaData = origem.getFrequencia().calcularProximaData(proximaData);
+        }
+        
+        // Verificar se a data calculada está dentro do mês
+        if (!proximaData.isAfter(ultimoDiaMes)) {
+            return proximaData;
+        }
+        
+        return null; // Não há ocorrência neste mês
+    }
+
+    /**
+     * Cria um objeto TransacaoResponse simulado (NÃO salva no banco)
+     * 
+     * @param origem Transação FIXA original
+     * @param dataOcorrencia Data calculada da ocorrência
+     * @return TransacaoResponse simulado
+     */
+    private TransacaoResponse simularOcorrencia(Transacao origem, LocalDate dataOcorrencia) {
+        return TransacaoResponse.builder()
+                .id(null) // NULL indica que é simulada
+                .descricao(origem.getDescricao())
+                .valor(origem.getValor())
+                .dataTransacao(dataOcorrencia)
+                .tipo(origem.getTipo())
+                .observacoes(origem.getObservacoes() != null 
+                        ? origem.getObservacoes() + " [PREVISÃO]" 
+                        : "[PREVISÃO]")
+                .categoria(com.financeiro.presentation.dto.categoria.CategoriaResponse.fromEntity(origem.getCategoria()))
+                .usuario(com.financeiro.presentation.dto.usuario.UsuarioResponse.fromEntity(origem.getUsuario()))
+                .recorrente(true)
+                .tipoRecorrencia(origem.getTipoRecorrencia())
+                .frequencia(origem.getFrequencia())
+                .transacaoPaiId(origem.getId())
+                .ativa(origem.getAtiva())
+                .build();
+    }
 }

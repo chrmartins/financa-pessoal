@@ -176,4 +176,34 @@ public class TransacaoController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    /**
+     * Previsão de transações FIXAS para qualquer período futuro
+     * Calcula em tempo real SEM salvar no banco de dados
+     * ✅ SEGURO: Usa o email do JWT token
+     * 
+     * @param mes Mês desejado (1-12)
+     * @param ano Ano desejado (ex: 2026)
+     * @return Lista de transações previstas (reais + simuladas) para aquele mês
+     */
+    @GetMapping("/preview")
+    public ResponseEntity<List<TransacaoResponse>> previsaoTransacoes(
+            @RequestParam int mes,
+            @RequestParam int ano,
+            Principal principal) {
+        try {
+            String emailUsuarioAutenticado = principal.getName();
+            
+            // Valida o mês
+            if (mes < 1 || mes > 12) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            List<TransacaoResponse> transacoes = transacaoService.previsaoTransacoesParaMes(
+                    emailUsuarioAutenticado, mes, ano);
+            return ResponseEntity.ok(transacoes);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }
