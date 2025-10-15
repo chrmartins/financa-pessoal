@@ -185,13 +185,15 @@ public class TransacaoService {
     }
 
     /**
-     * Cria apenas a primeira ocorrência de uma transação fixa (recorrente automática)
+     * Cria transação fixa + próximas 12 ocorrências para visualização no frontend
+     * Frontend navega mês a mês, então criamos antecipadamente as próximas ocorrências
      */
     private TransacaoResponse criarTransacaoFixa(CreateTransacaoRequest request, Usuario usuario, Categoria categoria) {
         log.info("Criando transação fixa com frequência {} para usuário {}", 
                 request.getFrequencia(), usuario.getEmail());
         
-        Transacao transacao = Transacao.builder()
+        // 1. Criar transação original (pai)
+        Transacao transacaoOriginal = Transacao.builder()
                 .descricao(request.getDescricao())
                 .valor(request.getValor())
                 .dataTransacao(request.getDataTransacao())
@@ -199,16 +201,63 @@ public class TransacaoService {
                 .observacoes(request.getObservacoes())
                 .categoria(categoria)
                 .usuario(usuario)
-                .recorrente(true)  // ✅ Transação fixa É recorrente
+                .recorrente(true)
                 .tipoRecorrencia(TipoRecorrencia.FIXA)
                 .frequencia(request.getFrequencia())
                 .ativa(true)
                 .build();
         
-        Transacao salva = transacaoRepository.save(transacao);
-        log.info("Transação fixa criada com ID: {}. Próximas ocorrências serão geradas automaticamente.", salva.getId());
+        Transacao original = transacaoRepository.save(transacaoOriginal);
+        log.info("Transação fixa original criada com ID: {}", original.getId());
         
-        return TransacaoResponse.fromEntity(salva);
+        // 2. Criar próximas 12 ocorrências imediatamente para visualização no frontend
+        int ocorrenciasCriadas = criarOcorrenciasFuturas(original, 12);
+        
+        log.info("Transação fixa criada: 1 original + {} ocorrências futuras", ocorrenciasCriadas);
+        
+        return TransacaoResponse.fromEntity(original);
+    }
+    
+    /**
+     * Cria N ocorrências futuras de uma transação FIXA
+     * Usado tanto na criação inicial quanto pelo JOB
+     */
+    private int criarOcorrenciasFuturas(Transacao original, int quantidadeOcorrencias) {
+        LocalDate proximaData = original.getDataTransacao();
+        int criadas = 0;
+        
+        for (int i = 1; i <= quantidadeOcorrencias; i++) {
+            // Calcula próxima data
+            proximaData = original.getFrequencia().calcularProximaData(proximaData);
+            
+            // Verifica se já existe (evita duplicação)
+            boolean jaExiste = transacaoRepository.existsByTransacaoPaiIdAndDataTransacao(
+                    original.getId(), proximaData);
+            
+            if (!jaExiste) {
+                Transacao ocorrencia = Transacao.builder()
+                        .descricao(original.getDescricao())
+                        .valor(original.getValor())
+                        .dataTransacao(proximaData)
+                        .tipo(original.getTipo())
+                        .observacoes(original.getObservacoes())
+                        .categoria(original.getCategoria())
+                        .usuario(original.getUsuario())
+                        .recorrente(true)
+                        .tipoRecorrencia(TipoRecorrencia.FIXA)
+                        .frequencia(original.getFrequencia())
+                        .transacaoPaiId(original.getId())
+                        .ativa(true)
+                        .build();
+                
+                transacaoRepository.save(ocorrencia);
+                criadas++;
+                
+                log.debug("Ocorrência criada: {} - {}", original.getDescricao(), proximaData);
+            }
+        }
+        
+        return criadas;
     }
 
     /**

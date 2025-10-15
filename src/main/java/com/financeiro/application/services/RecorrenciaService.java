@@ -25,18 +25,19 @@ public class RecorrenciaService {
     private final TransacaoRepository transacaoRepository;
 
     /**
-     * Job executado diariamente às 02:00 para gerar transações fixas
+     * Job executado diariamente às 02:00 para COMPLEMENTAR transações fixas
      * Cron: segundo, minuto, hora, dia do mês, mês, dia da semana
      * 
-     * CORREÇÃO: Agora cria TODAS as ocorrências necessárias até 1 mês no futuro
+     * Agora o JOB apenas COMPLEMENTA: se faltam ocorrências, cria mais
+     * A criação inicial já cria 12 meses adiantados
      */
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
     public void processarRecorrenciasFixas() {
-        log.info("🔄 Iniciando processamento de recorrências fixas...");
+        log.info("🔄 Iniciando processamento de recorrências fixas (complementação)...");
         
         LocalDate hoje = LocalDate.now();
-        LocalDate dataLimite = hoje.plusMonths(1); // Cria até 1 mês no futuro
+        LocalDate dataLimite = hoje.plusMonths(12); // Mantém sempre 12 meses no futuro
         
         // Buscar todas as transações FIXA que estão ativas E são "origem" (transacaoPaiId é nulo)
         List<Transacao> transacoesOrigem = transacaoRepository.findByTipoRecorrenciaAndAtiva(
@@ -57,7 +58,7 @@ public class RecorrenciaService {
                 totalGeradas += geradas;
                 
                 if (geradas > 0) {
-                    log.info("📊 '{}' criou {} novas ocorrências", 
+                    log.info("📊 '{}' criou {} novas ocorrências (complementação)", 
                             transacaoOrigem.getDescricao(), geradas);
                 }
             } catch (Exception e) {
